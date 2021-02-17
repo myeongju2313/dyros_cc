@@ -30,6 +30,7 @@ public:
     void calculateFootStepTotal();
     void supportToFloatPattern();
     void floatToSupportFootstep();
+    void GravityCalculate_MJ();
  
     void getZmpTrajectory();
     void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
@@ -115,7 +116,15 @@ public:
     Eigen::MatrixXd C_;
 
     Eigen::VectorQd Gravity_MJ_;
+    Eigen::VectorQd Gravity_DSP_;
+    Eigen::VectorQd Gravity_SSP_;
     Eigen::VectorQd q_dot_LPF_MJ;
+
+    Eigen::Vector6d r_ft_;
+    Eigen::Vector6d l_ft_;
+    Eigen::Vector2d zmp_measured_;
+    Eigen::Vector2d zmp_err_;
+    Eigen::Vector2d zmp_measured_LPF_;
 
     double del_t = 0.0005;
     double xi_;
