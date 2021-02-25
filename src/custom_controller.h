@@ -55,6 +55,8 @@ public:
     Eigen::VectorQd Kd;
     Eigen::VectorQd desired_q_not_compensated_;
     
+    Eigen::VectorQd q_prev_MJ_;
+
     Eigen::Vector12d q_des;
     
     Eigen::Isometry3d pelv_trajectory_support_; //local frame
