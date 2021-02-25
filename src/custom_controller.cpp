@@ -296,7 +296,7 @@ void CustomController::calculateFootStepTotal()
 
   if(length_to_target == 0)
   {
-    middle_total_step_number = 30; // 
+    middle_total_step_number = 10; // 
     dlength = 0;
   }
 
@@ -1469,7 +1469,7 @@ void CustomController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(11) =  atan2( R_r(1), R_r(2) );
 
 }
-
+/*
 void CustomController::GravityCalculate_MJ()
 {
   double grav_gain = 0.0;
@@ -1541,97 +1541,92 @@ void CustomController::GravityCalculate_MJ()
     Gravity_SSP_.setZero();
   }
 
-  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;
-  
-  // SSP
-  //wbc_.set_contact(rd_, 1, 1);
-  //Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
+  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;  
 
 }
-/*
+ */
 void CustomController::GravityCalculate_MJ()
 {
-  Gravity_DSP_.setZero();
-  Gravity_SSP_.setZero();
   double grav_gain = 0.0;
-  // DSP
+   
   if(walking_tick_mj < t_start_ + t_rest_init_ ) 
   {
     wbc_.set_contact(rd_, 1, 1);
     Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);
-  }
+    Gravity_SSP_.setZero();
 
-  else if(walking_tick_mj >= t_start_ + t_rest_init_  && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_) //  
+    if(walking_tick_mj == t_start_ + t_rest_init_ - 1)
+    {
+      Gravity_DSP_last_ = Gravity_DSP_;
+    }
+  }
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // 0.01 s  
   {
+    grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 0.0, 1.0, 0.0, 0.0);
+     
+    Gravity_DSP_ = (1.0 - grav_gain) * Gravity_DSP_last_; 
+    
     if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
     { 
-      grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ , t_start_ + t_rest_init_ + t_double1_ , 0.0, 1.0, 0.0, 0.0);
-      
-     if( walking_tick_mj >= t_start_ + t_rest_init_ &&  walking_tick_mj <= t_start_ + t_rest_init_ + t_double1_)
-      {
-        wbc_.set_contact(rd_, 1, 1);
-        Gravity_DSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);
-      }       
-
       wbc_.set_contact(rd_, 1, 0);       
-      Gravity_SSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_); 
+      Gravity_SSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);      
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
-      grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ , t_start_ + t_rest_init_ + t_double1_ , 0.0, 1.0, 0.0, 0.0);
-
-      if( walking_tick_mj >= t_start_ + t_rest_init_ &&  walking_tick_mj <= t_start_ + t_rest_init_ + t_double1_)
-      {
-        wbc_.set_contact(rd_, 1, 1);
-        Gravity_DSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);
-      }     
-      
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);
     }  
   }
-  else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ )
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
   {
+    Gravity_DSP_.setZero(); 
+
     if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
     { 
-      grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_ - t_rest_last_ , 0.0, 1.0, 0.0, 0.0);
-
-      wbc_.set_contact(rd_, 1, 1);
-      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);      
-      
       wbc_.set_contact(rd_, 1, 0);       
-      Gravity_SSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);
-      
-            
+      Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);             
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
-      grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_ - t_rest_last_ , 0.0, 1.0, 0.0, 0.0);
-
-      wbc_.set_contact(rd_, 1, 1);
-      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);      
-      
       wbc_.set_contact(rd_, 0, 1);       
-      Gravity_SSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);
+      Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
     }
+    if( walking_tick_mj == t_start_ + t_total_ - t_rest_last_ - t_double2_ - 1)
+    {
+      Gravity_SSP_last_ = Gravity_SSP_;
+    }
+  }
+  else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_)
+  { 
+    grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_ - t_rest_last_ , 0.0, 1.0, 0.0, 0.0);
+
+    if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
+    {   
+      wbc_.set_contact(rd_, 1, 1);
+      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);       
+      Gravity_SSP_ = (1.0 - grav_gain) * Gravity_SSP_last_;           
+    }
+    else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
+    {
+      wbc_.set_contact(rd_, 1, 1);
+      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);        
+      Gravity_SSP_ = (1.0 - grav_gain) * Gravity_SSP_last_; 
+    }    
   }
   else
   {
     wbc_.set_contact(rd_, 1, 1);
     Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);
+    Gravity_SSP_.setZero();
   }
 
-  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;
-  
-  // SSP
-  //wbc_.set_contact(rd_, 1, 1);
-  //Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
+  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;  
 
 }
-*/
+
 void CustomController::parameterSetting()
 {
-    target_x_ = 6.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -1651,7 +1646,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.06; // 제자리 보행 파라미터 4cm // 전진 5cm
+    foot_height_ = 0.04; // 제자리 보행 파라미터 4cm // 전진 5cm
 }
 
 void CustomController::updateNextStepTime()
@@ -1660,10 +1655,10 @@ void CustomController::updateNextStepTime()
     {
         if(current_step_num_ != total_step_num_-1)
         {
-        t_start_ = t_last_ + 1 ;
-        t_start_real_ = t_start_ + t_rest_init_;
-        t_last_ = t_start_ + t_total_ -1;
-        current_step_num_ ++;
+          t_start_ = t_last_ + 1 ;
+          t_start_real_ = t_start_ + t_rest_init_;
+          t_last_ = t_start_ + t_total_ -1;
+          current_step_num_ ++;
         }
     }
    if(current_step_num_ == total_step_num_-1 && walking_tick_mj >= t_last_ + t_total_)
