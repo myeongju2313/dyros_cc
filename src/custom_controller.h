@@ -119,7 +119,9 @@ public:
 
     Eigen::VectorQd Gravity_MJ_;
     Eigen::VectorQd Gravity_DSP_;
+    Eigen::VectorQd Gravity_DSP_last_;
     Eigen::VectorQd Gravity_SSP_;
+    Eigen::VectorQd Gravity_SSP_last_;
     Eigen::VectorQd q_dot_LPF_MJ;
 
     Eigen::Vector6d r_ft_;
