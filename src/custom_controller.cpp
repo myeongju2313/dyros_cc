@@ -302,7 +302,7 @@ void CustomController::calculateFootStepTotal()
 
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; // 
+    middle_total_step_number = 20; // 
     dlength = 0;
   }
 
