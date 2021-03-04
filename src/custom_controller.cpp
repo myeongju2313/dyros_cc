@@ -15,7 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+//ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+//ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+//ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -27,18 +32,21 @@ void CustomController::computeSlow()
             walking_enable_ = true;            
             // Initial pose             
             ref_q_ = rd_.q_;
+            for(int i = 0; i < 12; i ++)
+            {
+              Initial_ref_q_(i) = ref_q_(i);
+            }
             initial_flag = 1;
             q_dot_LPF_MJ.setZero();
-            q_prev_MJ_ = rd_.q_;
+            q_prev_MJ_ = rd_.q_; 
         } 
 
         wbc_.set_contact(rd_, 1, 1);  
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
           
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85*Gravity_MJ_(i) ; }
-
-        //ControlVal_.setZero();        
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i) ; }
+       
     }
     else if (tc.mode == 11)
     { 
@@ -54,7 +62,7 @@ void CustomController::computeSlow()
         floatToSupportFootstep(); 
 
         if(current_step_num_< total_step_num_)
-        {
+        {   
             getZmpTrajectory();
             getComTrajectory();            
             getFootTrajectory(); 
@@ -65,21 +73,41 @@ void CustomController::computeSlow()
             Compliant_control(q_des);
             for(int i = 0; i < 12; i ++)
             {
-              ref_q_(i) = DOB_IK_output_(i);
+              ref_q_(i) = q_des(i);
+              //ref_q_(i) = DOB_IK_output_(i);
             }            
             hip_compensator();
             GravityCalculate_MJ();
-             
+
+            if(walking_tick_mj == 1)
+            {
+              for(int i = 0; i < 12; i ++)               
+              { Initial_ref_q_walk_(i) = ref_q_(i); }            
+            }
+            if(walking_tick_mj < 0.02*hz_)
+            { 
+              for(int i = 0; i < 12; i ++)
+              { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 0.02*hz_, Initial_ref_q_(i), Initial_ref_q_walk_(i), 0.0, 0.0); }
+            }
+            
             for(int i = 0; i < MODEL_DOF; i++)
             { 
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85*Gravity_MJ_(i) ;
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i) ;
             }
-        
+              
+            if(walking_tick_mj % 10 == 0)
+            {
+              //MJ_joint << rd_.q_(1) << "," << q_prev_MJ_(1) << "," << rd_.q_(2) << "," << q_prev_MJ_(2) << "," << rd_.q_(3) << "," << q_prev_MJ_(3) << "," << rd_.q_(4) << "," << q_prev_MJ_(4) << endl;
+              MJ_joint << q_des(1) << "," << ref_q_(1) << "," << q_des(2) << "," << ref_q_(2) << "," << q_des(3) << "," << ref_q_(3) << "," << q_des(4) << "," << ref_q_(4) << endl;
+              //MJ_joint << ref_q_(1) << "," << rd_.q_(1) << "," << ref_q_(5) << "," << rd_.q_(5) << "," << ref_q_(7) << "," << rd_.q_(7) << "," << ref_q_(11) << "," << rd_.q_(11) << endl;
+              MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
+            }
+                        
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
 
-            q_prev_MJ_ = rd_.q_;            
+            q_prev_MJ_ = rd_.q_ - rd_.q_dot_*del_t;            
         }        
       }
       else
@@ -87,10 +115,9 @@ void CustomController::computeSlow()
         wbc_.set_contact(rd_, 1, 1);
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85*Gravity_MJ_(i); }
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i); }
       }        
-
-      //ControlVal_.setZero();  
+  
     }   
 }
 
@@ -302,7 +329,7 @@ void CustomController::calculateFootStepTotal()
 
   if(length_to_target == 0)
   {
-    middle_total_step_number = 20; // 
+    middle_total_step_number = 5; // 
     dlength = 0;
   }
 
@@ -684,19 +711,19 @@ void CustomController::Joint_gain_set_MJ()
     Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
     Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
     
-   /* Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    /*Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
     Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
     Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
     Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 3200.0; Kd(4) = 24.0;// Left Ankle pitch
-    Kp(5) = 3200.0; Kd(5) = 24.0;// Left Ankle roll
+    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
 
     Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
     Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
     Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
     Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 3200.0; Kd(10) = 24.0;// Right Ankle pitch
-    Kp(11) = 3200.0; Kd(11) = 24.0;// Right Ankle roll
+    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
 
     Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
     Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
@@ -728,8 +755,8 @@ void CustomController::addZmpOffset()
 { 
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
   
-  lfoot_zmp_offset_ = -0.02;
-  rfoot_zmp_offset_ = 0.02;
+  lfoot_zmp_offset_ = -0.03;
+  rfoot_zmp_offset_ = 0.03;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
   
@@ -791,14 +818,14 @@ void CustomController::zmpGenerator(const unsigned int norm_size, const unsigned
   {
     for (int i = 0; i <= t_temp_; i++) //600 tick
     {
-      if(i < 0.5*hz_) 
+      if(i < 1.0*hz_) 
       {
         ref_zmp_(i,0) = com_support_init_(0) ;
         ref_zmp_(i,1) = com_support_init_(1) ;
       }
-      else if(i < 1.5*hz_) 
+      else if(i < 2.0*hz_) 
       {
-        double del_x = i - 0.5*hz_;
+        double del_x = i - 1.0*hz_;
         ref_zmp_(i,0) = com_support_init_(0) - del_x * com_support_init_(0)/(1.0*hz_);
         ref_zmp_(i,1) = com_support_init_(1) ;
       }
@@ -1355,11 +1382,9 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
       zmp_err_(1) = zmp_err_(1) + (py_ref(tick) - zmp_measured_LPF_(1))*0.0005;
     }   
 
-    //MJ_graph << px_ref(tick) << "," << zmp_measured_LPF_(0) << "," << py_ref(tick) << "," << zmp_measured_LPF_(1) << endl; 
-    
-    if(tick % 5 == 0 )
+    if(tick % 10 == 0 )
     {
-      MJ_graph << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << "," << px(0) << "," << py(0) << endl;
+      //MJ_ZMP << px_ref(tick) << "," << zmp_measured_LPF_(0) << "," << py_ref(tick) << "," << zmp_measured_LPF_(1) << endl;
     }    
 }
 
@@ -1367,12 +1392,11 @@ void CustomController::getPelvTrajectory()
 {
   double z_rot = foot_step_support_frame_(current_step_num_,5);  
   
-  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - com_support_current_(0)) - 0.01 * zmp_err_(0);
-  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - com_support_current_(1)) - 0.01 * zmp_err_(1);
+  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - com_support_current_(0)) ;//- 0.01 * zmp_err_(0) * 0;
+  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
    
   pelv_trajectory_support_.translation()(2) = com_desired_(2);          
-
-  //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << pelv_support_current_.translation()(1) << endl;
+ 
        
   Eigen::Vector3d Trunk_trajectory_euler;
   Trunk_trajectory_euler.setZero();
@@ -1387,6 +1411,7 @@ void CustomController::getPelvTrajectory()
   //cout << z_rot *180/M_PI << "," << current_step_num_ << endl;
   
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
+  
      
 }
 
@@ -1515,80 +1540,89 @@ void CustomController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(11) =  atan2( R_r(1), R_r(2) );
 
 }
-/*
+
 void CustomController::GravityCalculate_MJ()
 {
   double grav_gain = 0.0;
+  double contact_gain = 0.0;
+  Eigen::Vector12d A; double B = 0.0;
    
   if(walking_tick_mj < t_start_ + t_rest_init_ ) 
   {
     wbc_.set_contact(rd_, 1, 1);
+    Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);    
+    Gravity_SSP_.setZero();
+    contact_gain = 1.0;
+    if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 1); }
+    else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 0); }  
+  }
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // 0.03 s  
+  {
+    contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 1.0, 0.0, 0.0, 0.0);
+    
+    wbc_.set_contact(rd_, 1, 1);       
     Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);
     Gravity_SSP_.setZero();
-  }
-  else if(walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // 0.01 s  
-  {
-    grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 0.0, 1.0, 0.0, 0.0);
-    wbc_.set_contact(rd_, 1, 1);
-    Gravity_DSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_); 
-    
     if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
-    { 
-      wbc_.set_contact(rd_, 1, 0);       
-      Gravity_SSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);      
-    }
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 1); }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
-    {
-      wbc_.set_contact(rd_, 0, 1);       
-      Gravity_SSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);
-    }  
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 0); } 
   }
-  else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
-  {
-    Gravity_DSP_.setZero(); 
+
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_) // SSP
+  { 
     if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
     { 
       wbc_.set_contact(rd_, 1, 0);       
-      Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);             
+      Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
     }
+    Gravity_DSP_.setZero();
+    contact_torque_MJ.setZero();
   }
+
   else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_)
   { 
-    grav_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_ - t_rest_last_ , 0.0, 1.0, 0.0, 0.0);
+    contact_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_ - t_rest_last_ , 0.0, 1.0, 0.0, 0.0);
+    Gravity_SSP_.setZero();
     if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
     {   
       wbc_.set_contact(rd_, 1, 1);
-      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);
-      wbc_.set_contact(rd_, 1, 0);       
-      Gravity_SSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);            
+      Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);  
+      contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 1);           
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 1, 1);
-      Gravity_DSP_ = grav_gain * wbc_.gravity_compensation_torque(rd_);
-      wbc_.set_contact(rd_, 0, 1);       
-      Gravity_SSP_ = (1.0 - grav_gain) * wbc_.gravity_compensation_torque(rd_);
+      Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_); 
+      contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, contact_gain, 0); 
     }    
   }
-  else
-  {
+  else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
+  { 
     wbc_.set_contact(rd_, 1, 1);
     Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);
+    
     Gravity_SSP_.setZero();
+    if(foot_step_(current_step_num_,6) == 1) // 왼발 지지
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, 1.0, 1); }
+    else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
+    { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, 1.0, 0); } 
   }
 
-  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;  
-
+  Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ + contact_torque_MJ;
 }
- */
+
+/*
 void CustomController::GravityCalculate_MJ()
 {
-  double grav_gain = 0.0;
+  double grav_gain = 0.0; 
    
   if(walking_tick_mj < t_start_ + t_rest_init_ ) 
   {
@@ -1598,6 +1632,7 @@ void CustomController::GravityCalculate_MJ()
 
     if(walking_tick_mj == t_start_ + t_rest_init_ - 1)
     {
+      Gravity_DSP_last_.setZero();
       Gravity_DSP_last_ = Gravity_DSP_;
     }
   }
@@ -1632,6 +1667,7 @@ void CustomController::GravityCalculate_MJ()
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
     }
+
     if( walking_tick_mj == t_start_ + t_total_ - t_rest_last_ - t_double2_ - 1)
     {
       Gravity_SSP_last_ = Gravity_SSP_;
@@ -1654,17 +1690,20 @@ void CustomController::GravityCalculate_MJ()
       Gravity_SSP_ = (1.0 - grav_gain) * Gravity_SSP_last_; 
     }    
   }
-  else
+  else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
   {
+    Eigen::Vector12d A; double B = 0;
     wbc_.set_contact(rd_, 1, 1);
     Gravity_DSP_ = wbc_.gravity_compensation_torque(rd_);
+   
     Gravity_SSP_.setZero();
+    //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_SSP_(5) << "," << Gravity_DSP_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << "," << grav_gain << endl;
   }
 
   Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ ;  
-
+  MJ_graph << com_desired_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << endl;
 }
-
+*/
 void CustomController::parameterSetting()
 {
     target_x_ = 0.0;
@@ -1676,12 +1715,12 @@ void CustomController::parameterSetting()
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.08*hz_; 
-    t_rest_last_ = 0.08*hz_;  
-    t_double1_ = 0.02*hz_;
-    t_double2_ = 0.02*hz_; 
-    t_total_= 1.0*hz_;  
-    t_temp_ = 3.0*hz_;
+    t_rest_init_ = 0.17*hz_; 
+    t_rest_last_ = 0.17*hz_;  
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_; 
+    t_total_= 1.2*hz_;  
+    t_temp_ = 4.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
     t_start_ = t_temp_ + 1 ;
     t_start_real_ = t_start_ + t_rest_init_;
@@ -1816,10 +1855,11 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   if(walking_tick_mj == 0)
     d_hat_b = d_hat;
 
-  d_hat = 0.97*d_hat_b + 0.03*d_hat;  
+  //d_hat = 0.97*d_hat_b + 0.03*d_hat;  
+  d_hat = (2*M_PI*10.0*del_t)/(1+2*M_PI*10.0*del_t)*d_hat + 1/(1+2*M_PI*10.0*del_t)*d_hat_b;
 
   double default_gain = 0.0; 
-  double compliant_gain = 0.0;
+  double compliant_gain = 0.5;
   double compliant_tick = 0.1*hz_;
   double gain_temp = 0.0;
   for (int i = 0; i < 12; i ++)

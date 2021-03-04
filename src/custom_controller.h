@@ -164,7 +164,13 @@ public:
     Eigen::MatrixXd foot_step_support_frame_;
     Eigen::MatrixXd foot_step_support_frame_offset_;
 
+    Eigen::VectorQd contact_torque_MJ;
+    Eigen::VectorQd Initial_ref_q_;
+    Eigen::VectorQd Initial_ref_q_walk_;
     bool walking_enable_ ;
+
+    Eigen::VectorQd q_mj;
+    Eigen::VectorQd q_mj_prev;
 private:
     Eigen::VectorQd ControlVal_;
     
