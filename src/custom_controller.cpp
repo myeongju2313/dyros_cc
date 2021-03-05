@@ -15,12 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-//ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-//ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-//ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+//ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+//ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+//ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -45,7 +45,7 @@ void CustomController::computeSlow()
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
           
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i) ; }
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; }
        
     }
     else if (tc.mode == 11)
@@ -73,41 +73,41 @@ void CustomController::computeSlow()
             Compliant_control(q_des);
             for(int i = 0; i < 12; i ++)
             {
-              ref_q_(i) = q_des(i);
-              //ref_q_(i) = DOB_IK_output_(i);
+              //ref_q_(i) = q_des(i);
+              ref_q_(i) = DOB_IK_output_(i);
             }            
             hip_compensator();
             GravityCalculate_MJ();
 
-            if(walking_tick_mj == 1)
-            {
-              for(int i = 0; i < 12; i ++)               
-              { Initial_ref_q_walk_(i) = ref_q_(i); }            
-            }
-            if(walking_tick_mj < 0.02*hz_)
+            // if(walking_tick_mj == 1)
+            // {
+            //   for(int i = 0; i < 12; i ++)               
+            //   { Initial_ref_q_walk_(i) = ref_q_(i); }            
+            // }
+            if(walking_tick_mj < 1.0*hz_)
             { 
               for(int i = 0; i < 12; i ++)
-              { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 0.02*hz_, Initial_ref_q_(i), Initial_ref_q_walk_(i), 0.0, 0.0); }
+              { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
             }
             
             for(int i = 0; i < MODEL_DOF; i++)
             { 
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i) ;
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ;
             }
               
             if(walking_tick_mj % 10 == 0)
             {
               //MJ_joint << rd_.q_(1) << "," << q_prev_MJ_(1) << "," << rd_.q_(2) << "," << q_prev_MJ_(2) << "," << rd_.q_(3) << "," << q_prev_MJ_(3) << "," << rd_.q_(4) << "," << q_prev_MJ_(4) << endl;
-              MJ_joint << q_des(1) << "," << ref_q_(1) << "," << q_des(2) << "," << ref_q_(2) << "," << q_des(3) << "," << ref_q_(3) << "," << q_des(4) << "," << ref_q_(4) << endl;
+              MJ_joint << q_des(7) << "," << ref_q_(7) << "," << q_des(8) << "," << ref_q_(8) << "," << q_des(9) << "," << ref_q_(9) << "," << q_des(10) << "," << ref_q_(10) << "," << q_des(11) << "," << ref_q_(11) << endl;
               //MJ_joint << ref_q_(1) << "," << rd_.q_(1) << "," << ref_q_(5) << "," << rd_.q_(5) << "," << ref_q_(7) << "," << rd_.q_(7) << "," << ref_q_(11) << "," << rd_.q_(11) << endl;
-              MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
+             // MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
             }
                         
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
 
-            q_prev_MJ_ = rd_.q_ - rd_.q_dot_*del_t;            
+            q_prev_MJ_ = rd_.q_;            
         }        
       }
       else
@@ -115,7 +115,7 @@ void CustomController::computeSlow()
         wbc_.set_contact(rd_, 1, 1);
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.85 * Gravity_MJ_(i); }
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i); }
       }        
   
     }   
@@ -329,7 +329,7 @@ void CustomController::calculateFootStepTotal()
 
   if(length_to_target == 0)
   {
-    middle_total_step_number = 5; // 
+    middle_total_step_number = 10; // 
     dlength = 0;
   }
 
@@ -672,46 +672,46 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
+    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
 
-    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
+    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
 
-    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
+    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
-    Kp(15) = 1600.0; Kd(15) = 70.0;
-    Kp(16) = 1600.0; Kd(16) = 70.0;
-    Kp(17) = 1600.0; Kd(17) = 70.0;
-    Kp(18) = 1600.0; Kd(18) = 70.0;
-    Kp(19) = 800.0; Kd(19) = 40.0; 
-    Kp(20) = 800.0; Kd(20) = 40.0;
-    Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
-    Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
+    // Kp(15) = 1600.0; Kd(15) = 70.0;
+    // Kp(16) = 1600.0; Kd(16) = 70.0;
+    // Kp(17) = 1600.0; Kd(17) = 70.0;
+    // Kp(18) = 1600.0; Kd(18) = 70.0;
+    // Kp(19) = 800.0; Kd(19) = 40.0; 
+    // Kp(20) = 800.0; Kd(20) = 40.0;
+    // Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
+    // Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
    
-    Kp(23) = 800.0; Kd(23) = 40.0; // Neck
-    Kp(24) = 800.0; Kd(24) = 40.0; // Neck
+    // Kp(23) = 800.0; Kd(23) = 40.0; // Neck
+    // Kp(24) = 800.0; Kd(24) = 40.0; // Neck
 
-    Kp(25) = 1600.0; Kd(25) = 70.0; 
-    Kp(26) = 1600.0; Kd(26) = 70.0;
-    Kp(27) = 1600.0; Kd(27) = 70.0;
-    Kp(28) = 1600.0; Kd(28) = 70.0;
-    Kp(29) = 800.0; Kd(29) = 40.0;
-    Kp(30) = 800.0; Kd(30) = 40.0;
-    Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
-    Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
+    // Kp(25) = 1600.0; Kd(25) = 70.0; 
+    // Kp(26) = 1600.0; Kd(26) = 70.0;
+    // Kp(27) = 1600.0; Kd(27) = 70.0;
+    // Kp(28) = 1600.0; Kd(28) = 70.0;
+    // Kp(29) = 800.0; Kd(29) = 40.0;
+    // Kp(30) = 800.0; Kd(30) = 40.0;
+    // Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
+    // Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
     
-    /*Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
     Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
     Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
     Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
@@ -748,7 +748,7 @@ void CustomController::Joint_gain_set_MJ()
     Kp(29) = 250.0; Kd(29) = 2.5;
     Kp(30) = 250.0; Kd(30) = 2.0;
     Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist*/
+    Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -1715,18 +1715,18 @@ void CustomController::parameterSetting()
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
-    t_rest_init_ = 0.17*hz_; 
-    t_rest_last_ = 0.17*hz_;  
+    t_rest_init_ = 0.27*hz_; 
+    t_rest_last_ = 0.27*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_; 
-    t_total_= 1.2*hz_;  
+    t_total_= 1.4*hz_;  
     t_temp_ = 4.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
     t_start_ = t_temp_ + 1 ;
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.04; // 제자리 보행 파라미터 4cm // 전진 5cm
+    foot_height_ = 0.05; // 제자리 보행 파라미터 4cm // 전진 5cm
 }
 
 void CustomController::updateNextStepTime()
@@ -1833,7 +1833,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
 {     
   Eigen::Vector12d current_u; 
   double del_t = 0.0, Kp = 0.0;
-  del_t = 1/hz_; Kp = 20.0;
+  del_t = 1/hz_; Kp = 25.0;
 
   if(walking_tick_mj == 0)  
   {
@@ -1856,7 +1856,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
     d_hat_b = d_hat;
 
   //d_hat = 0.97*d_hat_b + 0.03*d_hat;  
-  d_hat = (2*M_PI*10.0*del_t)/(1+2*M_PI*10.0*del_t)*d_hat + 1/(1+2*M_PI*10.0*del_t)*d_hat_b;
+  d_hat = (2*M_PI*5.0*del_t)/(1+2*M_PI*5.0*del_t)*d_hat + 1/(1+2*M_PI*5.0*del_t)*d_hat_b;
 
   double default_gain = 0.0; 
   double compliant_gain = 0.5;
