@@ -45,7 +45,7 @@ void CustomController::computeSlow()
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
           
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; }
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.9 * Gravity_MJ_(i) ; }
        
     }
     else if (tc.mode == 11)
@@ -76,7 +76,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            hip_compensator();
+            //hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -87,7 +87,7 @@ void CustomController::computeSlow()
             
             for(int i = 0; i < MODEL_DOF; i++)
             { 
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; // 실험 중력보상 1.0 시뮬 0.9
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.9 * Gravity_MJ_(i) ; // 실험 중력보상 1.0 시뮬 0.9
             }
               
             if(walking_tick_mj % 10 == 0)
@@ -110,7 +110,7 @@ void CustomController::computeSlow()
         wbc_.set_contact(rd_, 1, 1);
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
         for(int i = 0; i < MODEL_DOF; i++)
-        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i); }
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 0.9 * Gravity_MJ_(i); }
       }        
   
     }   
@@ -612,8 +612,8 @@ void CustomController::calculateFootStepTotal_MJ()
   unsigned int middle_total_step_number = length_to_target/dlength;
   double middle_residual_length = length_to_target - middle_total_step_number*dlength;
 
-  double step_width_init = 0.01;
-  double step_width = 0.02;
+  double step_width_init = 0.015;
+  double step_width = 0.03;
   
   if(length_to_target == 0)
   {
