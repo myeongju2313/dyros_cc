@@ -28,6 +28,7 @@ public:
     void parameterSetting();
     void getRobotState();
     void calculateFootStepTotal();
+    void calculateFootStepTotal_MJ();
     void supportToFloatPattern();
     void floatToSupportFootstep();
     void GravityCalculate_MJ();
