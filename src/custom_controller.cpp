@@ -617,7 +617,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 15; //
     dlength = 0;
   }
 
@@ -1945,7 +1945,7 @@ void CustomController::parameterSetting()
     t_rest_last_ = 0.22*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 1.3*hz_;
+    t_total_= 1.2*hz_;
 
     // t_rest_init_ = 0.17*hz_;
     // t_rest_last_ = 0.17*hz_;  
@@ -1985,7 +1985,7 @@ void CustomController::updateNextStepTime()
 void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
-  left_hip_pitch = 1.00*DEG2RAD, right_hip_pitch = 1.00*DEG2RAD, left_hip_pitch_first = 1.00*DEG2RAD, right_hip_pitch_first = 1.00*DEG2RAD,
+  left_hip_pitch = 0.50*DEG2RAD, right_hip_pitch = 0.50*DEG2RAD, left_hip_pitch_first = 0.50*DEG2RAD, right_hip_pitch_first = 0.50*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
 
