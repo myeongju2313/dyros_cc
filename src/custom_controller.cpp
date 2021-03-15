@@ -95,7 +95,7 @@ void CustomController::computeSlow()
               //MJ_joint << rd_.q_(1) << "," << q_prev_MJ_(1) << "," << rd_.q_(2) << "," << q_prev_MJ_(2) << "," << rd_.q_(3) << "," << q_prev_MJ_(3) << "," << rd_.q_(4) << "," << q_prev_MJ_(4) << endl;
               MJ_joint << q_des(7) << "," << ref_q_(7) << "," << q_des(8) << "," << ref_q_(8) << "," << q_des(9) << "," << ref_q_(9) << "," << q_des(10) << "," << ref_q_(10) << "," << q_des(11) << "," << ref_q_(11) << endl;
               //MJ_joint << ref_q_(1) << "," << rd_.q_(1) << "," << ref_q_(5) << "," << rd_.q_(5) << "," << ref_q_(7) << "," << rd_.q_(7) << "," << ref_q_(11) << "," << rd_.q_(11) << endl;
-             // MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
+              //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
             }
                         
             desired_q_not_compensated_ = ref_q_;           
@@ -1959,7 +1959,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.04; // 실험 0.05 , 시뮬 0.04
+    foot_height_ = 0.04; // 실험 0.04 , 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -1986,7 +1986,8 @@ void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
   left_hip_pitch = 0.50*DEG2RAD, right_hip_pitch = 0.50*DEG2RAD, left_hip_pitch_first = 0.50*DEG2RAD, right_hip_pitch_first = 0.50*DEG2RAD,
-      left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, temp_time = 0.05*hz_;
+  left_ank_pitch = 0.1*DEG2RAD, right_ank_pitch = 0.1*DEG2RAD, left_ank_pitch_first = 0.1*DEG2RAD, right_ank_pitch_first = 0.1*DEG2RAD,
+      left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
 
   if (current_step_num_ == 0)
@@ -1997,14 +1998,16 @@ void CustomController::hip_compensator()
       {
         left_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, left_hip_roll_first, 0.0, 0.0);
         left_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, left_hip_pitch_first, 0.0, 0.0);
+        left_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, left_ank_pitch_first, 0.0, 0.0);
       }      
       else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time)
       {
         left_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_hip_roll_first, 0.0, 0.0, 0.0);
         left_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_hip_pitch_first, 0.0, 0.0, 0.0);
+        left_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_ank_pitch_first, 0.0, 0.0, 0.0);
       }      
       else
-      { left_hip_roll_temp = 0; left_hip_pitch_temp = 0; }      
+      { left_hip_roll_temp = 0.0; left_hip_pitch_temp = 0.0; left_ank_pitch_temp = 0.0; }      
     }
     else if(foot_step_(current_step_num_, 6) == 0) // right support foot
     {
@@ -2012,14 +2015,16 @@ void CustomController::hip_compensator()
       {
         right_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, right_hip_roll_first, 0.0, 0.0);
         right_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, right_hip_pitch_first, 0.0, 0.0);
+        right_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0.0, right_ank_pitch_first, 0.0, 0.0);
       }      
       else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time)
       {
         right_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_hip_roll_first, 0.0, 0.0, 0.0);
         right_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_hip_pitch_first, 0.0, 0.0, 0.0);
+        right_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_ank_pitch_first, 0.0, 0.0, 0.0);
       }        
       else
-      { right_hip_roll_temp = 0; right_hip_pitch_temp = 0; }
+      { right_hip_roll_temp = 0.0; right_hip_pitch_temp = 0.0; right_ank_pitch_temp = 0.0; }
     }    
   }
   else
@@ -2030,14 +2035,16 @@ void CustomController::hip_compensator()
       {
         left_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, left_hip_roll, 0.0, 0.0);
         left_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, left_hip_pitch, 0.0, 0.0);
+        left_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, left_ank_pitch, 0.0, 0.0);
       }      
       else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time)
       {
         left_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_hip_roll, 0.0, 0.0, 0.0);
         left_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_hip_pitch, 0.0, 0.0, 0.0);
+        left_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,left_ank_pitch, 0.0, 0.0, 0.0);
       }      
       else
-      { left_hip_roll_temp = 0; left_hip_pitch_temp = 0; }      
+      { left_hip_roll_temp = 0; left_hip_pitch_temp = 0; left_ank_pitch_temp = 0; }      
     }
     else if(foot_step_(current_step_num_, 6) == 0) // right support foot
     {
@@ -2045,14 +2052,16 @@ void CustomController::hip_compensator()
       {
         right_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, right_hip_roll, 0.0, 0.0);
         right_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, right_hip_pitch, 0.0, 0.0);
+        right_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_ + t_double1_, t_start_ + t_rest_init_ + t_double1_ + temp_time, 0, right_ank_pitch, 0.0, 0.0);
       }      
       else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time)
       {
         right_hip_roll_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_hip_roll, 0.0, 0.0, 0.0);
         right_hip_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_hip_pitch, 0.0, 0.0, 0.0);
+        right_ank_pitch_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - temp_time, t_start_ + t_total_ - t_rest_last_,right_ank_pitch, 0.0, 0.0, 0.0);
       }        
       else
-      { right_hip_roll_temp = 0; right_hip_pitch_temp = 0; }
+      { right_hip_roll_temp = 0; right_hip_pitch_temp = 0; right_ank_pitch_temp = 0.0; }
     }    
   }  
  
@@ -2060,6 +2069,8 @@ void CustomController::hip_compensator()
   ref_q_(7) = ref_q_(7) + right_hip_roll_temp;
   ref_q_(2) = ref_q_(2) - left_hip_pitch_temp;
   ref_q_(8) = ref_q_(8) - right_hip_pitch_temp;
+  ref_q_(4) = ref_q_(4) - left_ank_pitch_temp;
+  ref_q_(10) = ref_q_(10) - right_ank_pitch_temp;
 }
 
 void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
