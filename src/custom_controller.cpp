@@ -617,7 +617,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 15; //
+    middle_total_step_number = 12; //
     dlength = 0;
   }
 
@@ -1941,11 +1941,11 @@ void CustomController::parameterSetting()
     is_right_foot_swing_ = 1;
 
     // 1.4 Hz 실험
-    t_rest_init_ = 0.22*hz_;
-    t_rest_last_ = 0.22*hz_;  
+    t_rest_init_ = 0.27*hz_;
+    t_rest_last_ = 0.27*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 1.2*hz_;
+    t_total_= 1.3*hz_;
 
     // t_rest_init_ = 0.17*hz_;
     // t_rest_last_ = 0.17*hz_;  
@@ -1985,8 +1985,8 @@ void CustomController::updateNextStepTime()
 void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
-  left_hip_pitch = 0.50*DEG2RAD, right_hip_pitch = 0.50*DEG2RAD, left_hip_pitch_first = 0.50*DEG2RAD, right_hip_pitch_first = 0.50*DEG2RAD,
-  left_ank_pitch = 0.1*DEG2RAD, right_ank_pitch = 0.1*DEG2RAD, left_ank_pitch_first = 0.1*DEG2RAD, right_ank_pitch_first = 0.1*DEG2RAD,
+  left_hip_pitch = 0.750*DEG2RAD, right_hip_pitch = 0.750*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD,
+  left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
 
@@ -2103,7 +2103,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   d_hat = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*d_hat + 1/(1+2*M_PI*8.0*del_t)*d_hat_b;
 
   double default_gain = 0.0;
-  double compliant_gain = 0.5;
+  double compliant_gain = 0.3;
   double compliant_tick = 0.1*hz_;
   double gain_temp = 0.0;
   for (int i = 0; i < 12; i ++)
