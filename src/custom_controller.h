@@ -77,18 +77,28 @@ public:
 
   Eigen::Isometry3d pelv_support_start_;
   Eigen::Isometry3d pelv_support_init_;
+  Eigen::Vector2d del_zmp;
+  Eigen::Vector2d cp_desired_;
+  Eigen::Vector2d cp_measured_;
+  Eigen::Vector2d cp_measured_LPF;
   Eigen::Vector3d com_support_init_;
   Eigen::Vector3d com_float_init_;
   Eigen::Vector3d com_float_current_;
   Eigen::Vector3d com_support_current_;
+  Eigen::Vector3d com_support_current_dot;
+  Eigen::Vector3d com_support_current_LPF;
+  Eigen::Vector3d com_float_current_LPF;
+  Eigen::Vector3d com_support_current_prev;
   Eigen::Isometry3d pelv_float_current_;
   Eigen::Isometry3d lfoot_float_current_;
   Eigen::Isometry3d rfoot_float_current_;
   Eigen::Isometry3d pelv_float_init_;
   Eigen::Isometry3d lfoot_float_init_;
-  Eigen::Isometry3d rfoot_float_init_;  
+  Eigen::Isometry3d rfoot_float_init_;
+  double wn = 0;
 
-  Eigen::Isometry3d supportfoot_float_current_;
+
+  Eigen::Isometry3d supportfoot_float_current_; 
 
   Eigen::Isometry3d pelv_support_current_;
   Eigen::Isometry3d lfoot_support_current_;

@@ -92,12 +92,11 @@ void CustomController::computeSlow()
               
             if(walking_tick_mj % 10 == 0)
             {
-              //MJ_joint << rd_.q_(1) << "," << q_prev_MJ_(1) << "," << rd_.q_(2) << "," << q_prev_MJ_(2) << "," << rd_.q_(3) << "," << q_prev_MJ_(3) << "," << rd_.q_(4) << "," << q_prev_MJ_(4) << endl;
               MJ_joint << q_des(7) << "," << ref_q_(7) << "," << q_des(8) << "," << ref_q_(8) << "," << q_des(9) << "," << ref_q_(9) << "," << q_des(10) << "," << ref_q_(10) << "," << q_des(11) << "," << ref_q_(11) << endl;
-              //MJ_joint << ref_q_(1) << "," << rd_.q_(1) << "," << ref_q_(5) << "," << rd_.q_(5) << "," << ref_q_(7) << "," << rd_.q_(7) << "," << ref_q_(11) << "," << rd_.q_(11) << endl;
               //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
+              MJ_graph << com_desired_(1) << "," << cp_desired_(1) << "," << cp_measured_(1) << endl; 
             }
-                        
+            
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
@@ -245,7 +244,12 @@ void CustomController::updateInitialState()
 void CustomController::getRobotState()
 {    
     com_float_current_ = rd_.link_[COM_id].xpos; // 지면에서 CoM 위치   
-
+    
+    if(walking_tick_mj == 0)
+    { com_float_current_LPF = com_float_current_; }
+    
+    com_float_current_LPF = 1/(1+2*M_PI*8.0*del_t)*com_float_current_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*com_float_current_;
+    
     //lfoot_float_current_.linear().setIdentity();
     lfoot_float_current_.linear() = rd_.link_[Left_Foot].Rotm;
     lfoot_float_current_.translation() = rd_.link_[Left_Foot].xpos;  // 지면에서 Ankle frame 위치
@@ -259,6 +263,14 @@ void CustomController::getRobotState()
     else if(foot_step_(current_step_num_, 6) == 1)
     { supportfoot_float_current_ = lfoot_float_current_; }
     
+    if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
+    { 
+      if(foot_step_(current_step_num_, 6) == 0)
+      { com_support_current_dot = (DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(lfoot_float_current_), com_float_current_LPF) - com_support_current_LPF)*hz_; }
+      else if(foot_step_(current_step_num_, 6) == 1)
+      { com_support_current_dot = (DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(rfoot_float_current_), com_float_current_LPF) - com_support_current_LPF)*hz_; }
+    }
+ 
     //pelv_float_current_.linear().setIdentity();
     pelv_float_current_.linear() = rd_.link_[Pelvis].Rotm;
     
@@ -268,8 +280,17 @@ void CustomController::getRobotState()
     pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;   
     lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * lfoot_float_current_;
     rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * rfoot_float_current_;
+    
+    com_support_current_prev = com_support_current_LPF;
     com_support_current_ =  DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_);
     
+    if(walking_tick_mj == 0)
+    { com_support_current_prev = com_support_current_; }
+    com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF);
+ 
+    if(walking_tick_mj != t_start_)
+    { com_support_current_dot = (com_support_current_LPF - com_support_current_prev)*hz_; } 
+
     l_ft_ = rd_.ContactForce_FT_raw.segment(0, 6);
     r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);    
 
@@ -284,13 +305,14 @@ void CustomController::getRobotState()
     zmp_measured_(0) = (left_zmp(0) * l_ft_(2) + right_zmp(0) * r_ft_(2))/(l_ft_(2) + r_ft_(2)); // ZMP X
     zmp_measured_(1) = (left_zmp(1) * l_ft_(2) + right_zmp(1) * r_ft_(2))/(l_ft_(2) + r_ft_(2)); // ZMP Y
     
+    wn = sqrt(GRAVITY/zc_);
+    
     if(walking_tick_mj == 0)
     {
       zmp_measured_LPF_.setZero();
     }
     zmp_measured_LPF_ = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*zmp_measured_ + 1/(1+2*M_PI*8.0*del_t)*zmp_measured_LPF_;
-
-    // cout << rd_.ContactForce_FT_raw(2) << "," << rd_.ContactForce_FT_raw(8) << endl;
+ 
 }
 
 void CustomController::calculateFootStepTotal()
@@ -612,8 +634,8 @@ void CustomController::calculateFootStepTotal_MJ()
   unsigned int middle_total_step_number = length_to_target/dlength;
   double middle_residual_length = length_to_target - middle_total_step_number*dlength;
 
-  double step_width_init = 0.01;
-  double step_width = 0.02;
+  double step_width_init = 0.0075;
+  double step_width = 0.015;
  
   if(length_to_target == 0)
   {
@@ -1670,9 +1692,14 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     GX_X = Gx * (preview_x - preview_x_b);
     Eigen::VectorXd GX_Y(1);
     GX_Y = Gx * (preview_y - preview_y_b);
+
+    if(walking_tick_mj == 0)
+    {
+      del_zmp.setZero(); cout << del_zmp(0) << "," << del_zmp(1) << endl;
+    }
     
-    del_ux(0,0) = -(px(0) - px_ref(tick))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
-    del_uy(0,0) = -(py(0) - py_ref(tick))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
+    del_ux(0,0) = -(px(0) - (px_ref(tick) + del_zmp(0)))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
+    del_uy(0,0) = -(py(0) - (py_ref(tick) + del_zmp(1)))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
     
     UX = UX + del_ux(0,0);
     UY = UY + del_uy(0,0);
@@ -1689,12 +1716,17 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     {
       zmp_err_(0) = zmp_err_(0) + (px_ref(tick) - zmp_measured_LPF_(0))*0.0005;
       zmp_err_(1) = zmp_err_(1) + (py_ref(tick) - zmp_measured_LPF_(1))*0.0005;
-    }   
-
-    if(tick % 10 == 0 )
-    {
-      //MJ_ZMP << px_ref(tick) << "," << py_ref(tick) << "," << XD(0) << "," << YD(0) << endl;
     }    
+
+    cp_desired_(0) = XD(0) + XD(1)/wn;
+    cp_desired_(1) = YD(0) + YD(1)/wn;
+
+    cp_measured_(0) = com_support_current_(0) + preview_x(1)/wn;
+    cp_measured_(1) = com_support_current_(1) + preview_y(1)/wn;
+
+    del_zmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.2*(cp_measured_(1) - cp_desired_(1));
+    
 }
 
 void CustomController::getPelvTrajectory()
@@ -1936,7 +1968,7 @@ void CustomController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.15;
+    step_length_x_ = 0.2;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
