@@ -1963,12 +1963,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 0.8;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.05;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -1991,7 +1991,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.04; // 실험 0.04 , 시뮬 0.04
+    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -2016,8 +2016,8 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.85*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
-  left_hip_pitch = 0.750*DEG2RAD, right_hip_pitch = 0.750*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD,
+  double left_hip_roll = -1.15*DEG2RAD, right_hip_roll = -0.9*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.85, 0.5
+  left_hip_pitch = 1.00*DEG2RAD, right_hip_pitch = 1.00*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
