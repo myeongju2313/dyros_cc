@@ -15,12 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-//ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-//ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-//ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+//ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+//ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+//ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -634,12 +634,12 @@ void CustomController::calculateFootStepTotal_MJ()
   unsigned int middle_total_step_number = length_to_target/dlength;
   double middle_residual_length = length_to_target - middle_total_step_number*dlength;
 
-  double step_width_init = 0.0075;
-  double step_width = 0.015;
+  double step_width_init = 0.01;
+  double step_width = 0.02;
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 12; //
+    middle_total_step_number = 8; //
     dlength = 0;
   }
 
@@ -1724,8 +1724,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_current_(0) + preview_x(1)/wn;
     cp_measured_(1) = com_support_current_(1) + preview_y(1)/wn;
 
-    del_zmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.2*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.05*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.05*(cp_measured_(1) - cp_desired_(1));
     
 }
 
@@ -1968,7 +1968,7 @@ void CustomController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.2;
+    step_length_x_ = 0.05;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2016,7 +2016,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
+  double left_hip_roll = -0.85*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD,
   left_hip_pitch = 0.750*DEG2RAD, right_hip_pitch = 0.750*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD,
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
