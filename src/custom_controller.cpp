@@ -15,12 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-// ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+// ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -76,7 +76,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            //hip_compensator();
+            hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -647,7 +647,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 8; //
+    middle_total_step_number = 5; //
     dlength = 0;
   }
 
@@ -1011,83 +1011,83 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
+    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
 
-    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
+    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
 
-    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
+    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
-    Kp(15) = 1600.0; Kd(15) = 70.0;
-    Kp(16) = 1600.0; Kd(16) = 70.0;
-    Kp(17) = 1600.0; Kd(17) = 70.0;
-    Kp(18) = 1600.0; Kd(18) = 70.0;
-    Kp(19) = 800.0; Kd(19) = 40.0;
-    Kp(20) = 800.0; Kd(20) = 40.0;
-    Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
-    Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
+    // Kp(15) = 1600.0; Kd(15) = 70.0;
+    // Kp(16) = 1600.0; Kd(16) = 70.0;
+    // Kp(17) = 1600.0; Kd(17) = 70.0;
+    // Kp(18) = 1600.0; Kd(18) = 70.0;
+    // Kp(19) = 800.0; Kd(19) = 40.0;
+    // Kp(20) = 800.0; Kd(20) = 40.0;
+    // Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
+    // Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
    
-    Kp(23) = 800.0; Kd(23) = 40.0; // Neck
-    Kp(24) = 800.0; Kd(24) = 40.0; // Neck
+    // Kp(23) = 800.0; Kd(23) = 40.0; // Neck
+    // Kp(24) = 800.0; Kd(24) = 40.0; // Neck
 
-    Kp(25) = 1600.0; Kd(25) = 70.0;
-    Kp(26) = 1600.0; Kd(26) = 70.0;
-    Kp(27) = 1600.0; Kd(27) = 70.0;
-    Kp(28) = 1600.0; Kd(28) = 70.0;
-    Kp(29) = 800.0; Kd(29) = 40.0;
-    Kp(30) = 800.0; Kd(30) = 40.0;
-    Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
-    Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
+    // Kp(25) = 1600.0; Kd(25) = 70.0;
+    // Kp(26) = 1600.0; Kd(26) = 70.0;
+    // Kp(27) = 1600.0; Kd(27) = 70.0;
+    // Kp(28) = 1600.0; Kd(28) = 70.0;
+    // Kp(29) = 800.0; Kd(29) = 40.0;
+    // Kp(30) = 800.0; Kd(30) = 40.0;
+    // Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
+    // Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
     
-    // Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
-    // Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
-    // Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
-    // Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    // Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    // Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
+    Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
+    Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
+    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
 
-    // Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
-    // Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
-    // Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
-    // Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    // Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    // Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+    Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
+    Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
+    Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
+    Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
+    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
 
-    // Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
-    // Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
-    // Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+    Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
+    Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
+    Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
         
-    // Kp(15) = 400.0; Kd(15) = 10.0;
-    // Kp(16) = 800.0; Kd(16) = 10.0;
-    // Kp(17) = 400.0; Kd(17) = 10.0;
-    // Kp(18) = 400.0; Kd(18) = 10.0;
-    // Kp(19) = 250.0; Kd(19) = 2.5;
-    // Kp(20) = 250.0; Kd(20) = 2.0;
-    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
-    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
+    Kp(15) = 400.0; Kd(15) = 10.0;
+    Kp(16) = 800.0; Kd(16) = 10.0;
+    Kp(17) = 400.0; Kd(17) = 10.0;
+    Kp(18) = 400.0; Kd(18) = 10.0;
+    Kp(19) = 250.0; Kd(19) = 2.5;
+    Kp(20) = 250.0; Kd(20) = 2.0;
+    Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
    
-    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
-    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
+    Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    Kp(24) = 50.0; Kd(24) = 2.0; // Neck
 
-    // Kp(25) = 400.0; Kd(25) = 10.0;
-    // Kp(26) = 800.0; Kd(26) = 10.0;
-    // Kp(27) = 400.0; Kd(27) = 10.0;
-    // Kp(28) = 400.0; Kd(28) = 10.0;
-    // Kp(29) = 250.0; Kd(29) = 2.5;
-    // Kp(30) = 250.0; Kd(30) = 2.0;
-    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
+    Kp(25) = 400.0; Kd(25) = 10.0;
+    Kp(26) = 800.0; Kd(26) = 10.0;
+    Kp(27) = 400.0; Kd(27) = 10.0;
+    Kp(28) = 400.0; Kd(28) = 10.0;
+    Kp(29) = 250.0; Kd(29) = 2.5;
+    Kp(30) = 250.0; Kd(30) = 2.0;
+    Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -2097,7 +2097,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.8*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.85, 0.5
+  double left_hip_roll = -0.8*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.85, 0.5
   left_hip_pitch = 0.75*DEG2RAD, right_hip_pitch = 0.75*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
