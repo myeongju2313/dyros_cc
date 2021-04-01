@@ -46,6 +46,8 @@ public:
   void hip_compensator();
   void Compliant_control(Eigen::Vector12d desired_leg_q);
   
+  void SC_err_compen(double x_des, double y_des);
+
   Eigen::Vector12d pre_motor_q_leg_;
   Eigen::Vector12d current_motor_q_leg_;
   Eigen::Vector12d d_hat_b;
@@ -97,7 +99,18 @@ public:
   Eigen::Isometry3d rfoot_float_init_;
   double wn = 0;
 
+  Eigen::Vector2d sc_err_before;
+  Eigen::Vector2d sc_err_after;
+  Eigen::Vector2d SC_com;
+  Eigen::Vector2d sc_err;
 
+  Eigen::Vector12d sc_joint_before;
+  Eigen::Vector12d sc_joint_after;
+  Eigen::Vector12d SC_joint;
+  Eigen::Vector12d sc_joint_err;
+
+  double walking_end_flag = 0;
+  
   Eigen::Isometry3d supportfoot_float_current_; 
 
   Eigen::Isometry3d pelv_support_current_;
