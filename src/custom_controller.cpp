@@ -347,7 +347,7 @@ void CustomController::calculateFootStepTotal()
 
   if(length_to_target == 0)
   {
-    middle_total_step_number = 8; //
+    middle_total_step_number = 6; //
     dlength = 0;
   }
 
@@ -1090,6 +1090,8 @@ void CustomController::addZmpOffset()
   rfoot_zmp_offset_ = 0.04;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
+
+  supportfoot_support_init_offset_ = supportfoot_support_init_;
  
 
   if(foot_step_(0,6) == 0) //right support foot
@@ -1325,12 +1327,12 @@ void CustomController::onestepZmp(unsigned int current_step_number, Eigen::Vecto
       }
       else if(i >= t_rest_init_ + t_double1_ && i < t_total_ - t_rest_last_ - t_double2_ ) //0.15 ~ 1.05초 , 30 ~ 210 tick
       {
-        temp_px(i) = supportfoot_support_init_offset_(0);
+        temp_px(i) = 0;
         temp_py(i) = supportfoot_support_init_offset_(1);
       }
       else if(i >= t_total_ - t_rest_last_ - t_double2_  && i < t_total_ ) //1.05 ~ 1.15초 , 210 ~ 230 tick
       {
-        temp_px(i) = supportfoot_support_init_offset_(0) + Kx2 / (t_rest_last_ + t_double2_) * (i+1 - (t_total_ - t_rest_last_ - t_double2_));
+        temp_px(i) = 0 + Kx2 / (t_rest_last_ + t_double2_) * (i+1 - (t_total_ - t_rest_last_ - t_double2_));
         temp_py(i) = supportfoot_support_init_offset_(1) + Ky2 / (t_rest_last_ + t_double2_) * (i+1 - (t_total_ - t_rest_last_ - t_double2_));
       }
     }  
@@ -1963,7 +1965,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.8;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -1991,7 +1993,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.04; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -2016,8 +2018,8 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -1.15*DEG2RAD, right_hip_roll = -0.9*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.85, 0.5
-  left_hip_pitch = 1.00*DEG2RAD, right_hip_pitch = 1.00*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD, // 실험 , 제자리 0.75deg
+  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.8*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.85, 0.5
+  left_hip_pitch = 0.75*DEG2RAD, right_hip_pitch = 0.75*DEG2RAD, left_hip_pitch_first = 0.750*DEG2RAD, right_hip_pitch_first = 0.750*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
