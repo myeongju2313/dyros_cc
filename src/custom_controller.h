@@ -91,6 +91,10 @@ public:
   Eigen::Vector3d com_support_current_LPF;
   Eigen::Vector3d com_float_current_LPF;
   Eigen::Vector3d com_support_current_prev;
+
+  Eigen::Vector3d pelv_rpy_current_;
+  Eigen::Isometry3d pelv_yaw_rot_current_from_global_;
+
   Eigen::Isometry3d pelv_float_current_;
   Eigen::Isometry3d lfoot_float_current_;
   Eigen::Isometry3d rfoot_float_current_;
