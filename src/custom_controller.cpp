@@ -627,18 +627,18 @@ void CustomController::calculateFootStepTotal_MJ()
   initial_rot = atan2(target_y_, target_x_);
 
   if(initial_rot > 0.0)
-    initial_drot = 5*DEG2RAD;
+    initial_drot = 10*DEG2RAD;
   else
-    initial_drot = -5*DEG2RAD;
+    initial_drot = -10*DEG2RAD;
 
   unsigned int initial_total_step_number = initial_rot/initial_drot;
   double initial_residual_angle = initial_rot - initial_total_step_number*initial_drot;
 
   final_rot = target_theta_ - initial_rot;
   if(final_rot > 0.0)
-    final_drot = 5*DEG2RAD;
+    final_drot = 10*DEG2RAD;
   else
-    final_drot = -5*DEG2RAD;
+    final_drot = -10*DEG2RAD;
 
   unsigned int final_total_step_number = final_rot/final_drot;
   double final_residual_angle = final_rot - final_total_step_number*final_drot;
@@ -652,7 +652,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 5; //
+    middle_total_step_number = 6; //
     dlength = 0;
   }
 
@@ -1099,8 +1099,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.04;
-  rfoot_zmp_offset_ = 0.04;
+  lfoot_zmp_offset_ = -0.045;
+  rfoot_zmp_offset_ = 0.045;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -1739,8 +1739,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_current_(0) + preview_x(1)/wn;
     cp_measured_(1) = com_support_current_(1) + preview_y(1)/wn;
 
-    del_zmp(0) = 0*1.05*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 0*1.05*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 0*1.01*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 0*1.01*(cp_measured_(1) - cp_desired_(1));
     
 }
 
@@ -2054,7 +2054,7 @@ void CustomController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.5236;
-    step_length_x_ = 0.05;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2102,7 +2102,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.85, 0.5
+  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
   left_hip_pitch = 0.5*DEG2RAD, right_hip_pitch = 0.5*DEG2RAD, left_hip_pitch_first = 0.50*DEG2RAD, right_hip_pitch_first = 0.50*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
