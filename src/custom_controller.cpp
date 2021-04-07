@@ -1876,7 +1876,7 @@ void CustomController::getComTrajectory()
   com_desired_(1) = yd_(0);
   com_desired_(2) = pelv_support_start_.translation()(2);
 
-  SC_err_compen(com_desired_(0), com_desired_(1)); 
+  //SC_err_compen(com_desired_(0), com_desired_(1)); 
 
   if (walking_tick_mj == t_start_ + t_total_-1 && current_step_num_ != total_step_num_-1)  
   {
@@ -2131,7 +2131,7 @@ void CustomController::updateNextStepTime()
 void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.6*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
-  left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
+  left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
