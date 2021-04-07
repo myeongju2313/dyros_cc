@@ -652,7 +652,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 6; //
+    middle_total_step_number = 8; //
     dlength = 0;
   }
 
@@ -1713,8 +1713,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
       del_zmp.setZero(); cout << del_zmp(0) << "," << del_zmp(1) << endl;
     }
     
-    del_ux(0,0) = -(px(0) - (px_ref(tick) + del_zmp(0)))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
-    del_uy(0,0) = -(py(0) - (py_ref(tick) + del_zmp(1)))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
+    del_ux(0,0) = -(px(0) - px_ref(tick))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
+    del_uy(0,0) = -(py(0) - py_ref(tick))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
     
     UX = UX + del_ux(0,0);
     UY = UY + del_uy(0,0);
@@ -2053,7 +2053,7 @@ void CustomController::parameterSetting()
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.5236;
+    target_theta_ = 0.78;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2102,8 +2102,8 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.5*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
-  left_hip_pitch = 0.5*DEG2RAD, right_hip_pitch = 0.5*DEG2RAD, left_hip_pitch_first = 0.50*DEG2RAD, right_hip_pitch_first = 0.50*DEG2RAD, // 실험 , 제자리 0.75deg
+  double left_hip_roll = -0.6*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
+  left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
