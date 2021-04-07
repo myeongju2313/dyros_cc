@@ -48,6 +48,11 @@ public:
   
   void SC_err_compen(double x_des, double y_des);
 
+   void CP_compen_MJ();
+
+  Eigen::Vector2d Tau_R;
+  Eigen::Vector2d Tau_L;
+
   Eigen::Vector12d pre_motor_q_leg_;
   Eigen::Vector12d current_motor_q_leg_;
   Eigen::Vector12d d_hat_b;
@@ -91,6 +96,10 @@ public:
   Eigen::Vector3d com_support_current_LPF;
   Eigen::Vector3d com_float_current_LPF;
   Eigen::Vector3d com_support_current_prev;
+
+  Eigen::Vector3d com_float_current_dot;
+  Eigen::Vector3d com_float_current_dot_prev;
+  Eigen::Vector3d com_float_current_dot_LPF;
 
   Eigen::Vector3d pelv_rpy_current_;
   Eigen::Isometry3d pelv_yaw_rot_current_from_global_;

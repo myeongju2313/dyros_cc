@@ -84,10 +84,30 @@ void CustomController::computeSlow()
               for(int i = 0; i < 12; i ++)
               { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
             }
+
+            CP_compen_MJ();
             
             for(int i = 0; i < MODEL_DOF; i++)
             {
               ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; // 실험 중력보상 1.0 시뮬 0.9
+            
+              if( i == 4)
+              {
+                ControlVal_(4) += Tau_L(0);
+              }
+              if( i == 5)
+              {
+                ControlVal_(5) -= Tau_L(1);
+              }
+              if( i == 10)
+              {
+                ControlVal_(10) += Tau_R(0);
+              }
+              if( i == 11)
+              {
+                ControlVal_(11) -= Tau_R(1);
+              }
+
             }
               
             if(walking_tick_mj % 10 == 0)
@@ -96,9 +116,10 @@ void CustomController::computeSlow()
               //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
               //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl; 
             }
-            MJ_joint << q_des(0) << "," << q_des(1) << "," << q_des(2) << "," << q_des(3) << "," << q_des(4) << "," << q_des(5) << endl;
-            MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl;
-
+            MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
+            //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl;
+            MJ_graph << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+            
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
@@ -272,7 +293,14 @@ void CustomController::getRobotState()
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
   
   com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
+  com_float_current_dot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].v); 
   
+  if(walking_tick_mj == 0)
+  { com_float_current_dot_LPF = com_float_current_dot; com_float_current_dot_prev = com_float_current_dot; }
+
+  com_float_current_dot_prev = com_float_current_dot;
+  com_float_current_dot_LPF = 1/(1+2*M_PI*6.0*del_t)*com_float_current_dot_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*com_float_current_dot; 
+
   if(walking_tick_mj == 0)
   { com_float_current_LPF = com_float_current_; }
   
@@ -1099,8 +1127,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.045;
-  rfoot_zmp_offset_ = 0.045;
+  lfoot_zmp_offset_ = -0.037;
+  rfoot_zmp_offset_ = 0.037;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -1736,11 +1764,11 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_desired_(0) = XD(0) + XD(1)/wn;
     cp_desired_(1) = YD(0) + YD(1)/wn;
 
-    cp_measured_(0) = com_support_current_(0) + preview_x(1)/wn;
-    cp_measured_(1) = com_support_current_(1) + preview_y(1)/wn;
+    cp_measured_(0) = com_support_current_(0) + com_float_current_dot_LPF(0)/wn;
+    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;
 
-    del_zmp(0) = 0*1.01*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 0*1.01*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
     
 }
 
@@ -2053,7 +2081,7 @@ void CustomController::parameterSetting()
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.78;
+    target_theta_ = 0.7854;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2282,6 +2310,33 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
   d_hat_b = d_hat;
   DOB_IK_output_b_ = DOB_IK_output_;
+}
+
+void CustomController::CP_compen_MJ()
+{
+  double alpha = 0;
+  double F_R = 0, F_L = 0;
+
+  Tau_R.setZero(); Tau_L.setZero(); 
+
+  alpha = (com_float_current_(1) - rfoot_float_current_.translation()(1))/(lfoot_float_current_.translation()(1) - rfoot_float_current_.translation()(1));
+  
+  if(alpha > 1)
+  { alpha = 1; }
+  else if(alpha < 0)
+  { alpha = 0; } 
+
+  F_R = (1 - alpha) * rd_.com_.mass * GRAVITY;
+  F_L = alpha * rd_.com_.mass * GRAVITY; 
+
+  Tau_L(0) = F_L * del_zmp(0); 
+  Tau_R(0) = F_R * del_zmp(0);
+
+  Tau_L(1) = F_L * del_zmp(1); 
+  Tau_R(1) = F_R * del_zmp(1);
+
+  //MJ_graph << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << com_desired_(1) << "," <<  F_R << "," << F_L << endl;
+  //cout << "R :" << Tau_R(0) << "," << Tau_R(1) <<  "L :" << Tau_L(0) << "," << Tau_L(1) << endl;
 }
 
 void CustomController::computePlanner()
