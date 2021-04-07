@@ -116,9 +116,9 @@ void CustomController::computeSlow()
               //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
               //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl; 
             }
-            MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
+            //MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
             //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl;
-            MJ_graph << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << endl;
+            MJ_graph << cp_desired_(0) << "," << com_desired_(0) << "," << cp_measured_(0) << "," << com_support_current_(0) << endl;
             
             desired_q_not_compensated_ = ref_q_;           
 
@@ -2131,7 +2131,7 @@ void CustomController::updateNextStepTime()
 void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.6*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
-  left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
+  left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 
