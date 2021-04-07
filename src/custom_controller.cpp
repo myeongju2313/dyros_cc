@@ -1127,8 +1127,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.037;
-  rfoot_zmp_offset_ = 0.037;
+  lfoot_zmp_offset_ = -0.03;
+  rfoot_zmp_offset_ = 0.03;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -2077,12 +2077,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 0.48;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.7854;
-    step_length_x_ = 0.1;
+    step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
