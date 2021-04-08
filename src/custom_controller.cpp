@@ -15,12 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-// ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+// ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -76,7 +76,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            hip_compensator();
+            //hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -89,26 +89,9 @@ void CustomController::computeSlow()
             
             for(int i = 0; i < MODEL_DOF; i++)
             {
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; // 실험 중력보상 1.0 시뮬 0.9
-            
-              if( i == 4)
-              {
-                ControlVal_(4) += Tau_L(0);
-              }
-              if( i == 5)
-              {
-                ControlVal_(5) -= Tau_L(1);
-              }
-              if( i == 10)
-              {
-                ControlVal_(10) += Tau_R(0);
-              }
-              if( i == 11)
-              {
-                ControlVal_(11) -= Tau_R(1);
-              }
-
-            }
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ; // 실험 중력보상 1.0 시뮬 0.9
+              // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+            } 
               
             if(walking_tick_mj % 10 == 0)
             {
@@ -118,7 +101,7 @@ void CustomController::computeSlow()
             }
             //MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
             //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl;
-            MJ_graph << cp_desired_(0) << "," << com_desired_(0) << "," << cp_measured_(0) << "," << com_support_current_(0) << endl;
+            MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << endl;
             
             desired_q_not_compensated_ = ref_q_;           
 
@@ -1044,83 +1027,83 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
+    Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
 
-    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
+    Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
 
-    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
+    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
-    // Kp(15) = 1600.0; Kd(15) = 70.0;
-    // Kp(16) = 1600.0; Kd(16) = 70.0;
-    // Kp(17) = 1600.0; Kd(17) = 70.0;
-    // Kp(18) = 1600.0; Kd(18) = 70.0;
-    // Kp(19) = 800.0; Kd(19) = 40.0;
-    // Kp(20) = 800.0; Kd(20) = 40.0;
-    // Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
-    // Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
+    Kp(15) = 1600.0; Kd(15) = 70.0;
+    Kp(16) = 1600.0; Kd(16) = 70.0;
+    Kp(17) = 1600.0; Kd(17) = 70.0;
+    Kp(18) = 1600.0; Kd(18) = 70.0;
+    Kp(19) = 800.0; Kd(19) = 40.0;
+    Kp(20) = 800.0; Kd(20) = 40.0;
+    Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
+    Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
    
-    // Kp(23) = 800.0; Kd(23) = 40.0; // Neck
-    // Kp(24) = 800.0; Kd(24) = 40.0; // Neck
+    Kp(23) = 800.0; Kd(23) = 40.0; // Neck
+    Kp(24) = 800.0; Kd(24) = 40.0; // Neck
 
-    // Kp(25) = 1600.0; Kd(25) = 70.0;
-    // Kp(26) = 1600.0; Kd(26) = 70.0;
-    // Kp(27) = 1600.0; Kd(27) = 70.0;
-    // Kp(28) = 1600.0; Kd(28) = 70.0;
-    // Kp(29) = 800.0; Kd(29) = 40.0;
-    // Kp(30) = 800.0; Kd(30) = 40.0;
-    // Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
-    // Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
+    Kp(25) = 1600.0; Kd(25) = 70.0;
+    Kp(26) = 1600.0; Kd(26) = 70.0;
+    Kp(27) = 1600.0; Kd(27) = 70.0;
+    Kp(28) = 1600.0; Kd(28) = 70.0;
+    Kp(29) = 800.0; Kd(29) = 40.0;
+    Kp(30) = 800.0; Kd(30) = 40.0;
+    Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
+    Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
     
-    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
-    Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
-    Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
-    Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+    // Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    // Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
+    // Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
+    // Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
+    // Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    // Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
 
-    Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
-    Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
-    Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
-    Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+    // Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
+    // Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
+    // Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
+    // Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
+    // Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    // Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
 
-    Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
-    Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
-    Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+    // Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
+    // Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
+    // Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
         
-    Kp(15) = 400.0; Kd(15) = 10.0;
-    Kp(16) = 800.0; Kd(16) = 10.0;
-    Kp(17) = 400.0; Kd(17) = 10.0;
-    Kp(18) = 400.0; Kd(18) = 10.0;
-    Kp(19) = 250.0; Kd(19) = 2.5;
-    Kp(20) = 250.0; Kd(20) = 2.0;
-    Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
-    Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
+    // Kp(15) = 400.0; Kd(15) = 10.0;
+    // Kp(16) = 800.0; Kd(16) = 10.0;
+    // Kp(17) = 400.0; Kd(17) = 10.0;
+    // Kp(18) = 400.0; Kd(18) = 10.0;
+    // Kp(19) = 250.0; Kd(19) = 2.5;
+    // Kp(20) = 250.0; Kd(20) = 2.0;
+    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
    
-    Kp(23) = 50.0; Kd(23) = 2.0; // Neck
-    Kp(24) = 50.0; Kd(24) = 2.0; // Neck
+    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
 
-    Kp(25) = 400.0; Kd(25) = 10.0;
-    Kp(26) = 800.0; Kd(26) = 10.0;
-    Kp(27) = 400.0; Kd(27) = 10.0;
-    Kp(28) = 400.0; Kd(28) = 10.0;
-    Kp(29) = 250.0; Kd(29) = 2.5;
-    Kp(30) = 250.0; Kd(30) = 2.0;
-    Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
+    // Kp(25) = 400.0; Kd(25) = 10.0;
+    // Kp(26) = 800.0; Kd(26) = 10.0;
+    // Kp(27) = 400.0; Kd(27) = 10.0;
+    // Kp(28) = 400.0; Kd(28) = 10.0;
+    // Kp(29) = 250.0; Kd(29) = 2.5;
+    // Kp(30) = 250.0; Kd(30) = 2.0;
+    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -2077,11 +2060,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.48;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.7854;
+    target_theta_ = 0.0;
     step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2317,7 +2300,9 @@ void CustomController::CP_compen_MJ()
   double alpha = 0;
   double F_R = 0, F_L = 0;
 
-  Tau_R.setZero(); Tau_L.setZero(); 
+  // Tau_R.setZero(); Tau_L.setZero(); 
+
+  Tau_CP.setZero();
 
   alpha = (com_float_current_(1) - rfoot_float_current_.translation()(1))/(lfoot_float_current_.translation()(1) - rfoot_float_current_.translation()(1));
   
@@ -2329,11 +2314,17 @@ void CustomController::CP_compen_MJ()
   F_R = (1 - alpha) * rd_.com_.mass * GRAVITY;
   F_L = alpha * rd_.com_.mass * GRAVITY; 
 
-  Tau_L(0) = F_L * del_zmp(0); 
-  Tau_R(0) = F_R * del_zmp(0);
+  Tau_CP(4) = F_L * del_zmp(0); // L pitch
+  Tau_CP(10) = F_R * del_zmp(0); // R pitch
 
-  Tau_L(1) = F_L * del_zmp(1); 
-  Tau_R(1) = F_R * del_zmp(1);
+  Tau_CP(5) = -F_L * del_zmp(1); // L roll
+  Tau_CP(11) = -F_R * del_zmp(1); // R roll
+
+  // Tau_L(0) = F_L * del_zmp(0); 
+  // Tau_R(0) = F_R * del_zmp(0);
+
+  // Tau_L(1) = F_L * del_zmp(1); 
+  // Tau_R(1) = F_R * del_zmp(1);
 
   //MJ_graph << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << com_desired_(1) << "," <<  F_R << "," << F_L << endl;
   //cout << "R :" << Tau_R(0) << "," << Tau_R(1) <<  "L :" << Tau_L(0) << "," << Tau_L(1) << endl;

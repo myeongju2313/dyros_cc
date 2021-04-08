@@ -53,6 +53,8 @@ public:
   Eigen::Vector2d Tau_R;
   Eigen::Vector2d Tau_L;
 
+  Eigen::VectorQd Tau_CP;
+
   Eigen::Vector12d pre_motor_q_leg_;
   Eigen::Vector12d current_motor_q_leg_;
   Eigen::Vector12d d_hat_b;
