@@ -36,9 +36,11 @@ void CustomController::computeSlow()
             {
               Initial_ref_q_(i) = ref_q_(i);
             }
-            initial_flag = 1;
-            q_dot_LPF_MJ.setZero();
+            initial_flag = 1; 
             q_prev_MJ_ = rd_.q_;
+            walking_tick_mj = 0;
+            walking_end_flag = 0;
+            cout << "mode = 10" << endl;
         }
 
         wbc_.set_contact(rd_, 1, 1);  
@@ -56,6 +58,7 @@ void CustomController::computeSlow()
         {     
             parameterSetting();
             cout << "parameter setting OK" << endl;
+            cout << "mode = 11" << endl;
         }        
         updateInitialState();
         getRobotState();
@@ -89,18 +92,11 @@ void CustomController::computeSlow()
             
             for(int i = 0; i < MODEL_DOF; i++)
             {
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ; // 실험 중력보상 1.0 시뮬 0.9
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ;  
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
-            } 
-              
-            if(walking_tick_mj % 10 == 0)
-            {
-              //MJ_joint << q_des(0) << "," << q_des(1) << "," << q_des(2) << "," << q_des(3) << "," << q_des(4) << "," << q_des(5) << endl;
-              //MJ_graph << com_desired_(1) << "," << com_support_current_(1) << "," << Gravity_MJ_(1) << "," << Gravity_MJ_(5) << "," << Gravity_MJ_(7) << "," << Gravity_MJ_(11) << endl;
-              //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl; 
-            }
+            }               
+            
             //MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
-            //MJ_graph << com_desired_(0) << "," << com_desired_(1) << "," << com_support_current_(0) << "," << com_support_current_(1) << endl;
             MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << endl;
             
             desired_q_not_compensated_ = ref_q_;           
@@ -115,7 +111,7 @@ void CustomController::computeSlow()
         if(walking_end_flag == 0)
         {
           cout << "walking finish" << endl;
-          walking_end_flag = 1;        
+          walking_end_flag = 1; initial_flag = 0;        
         } 
 
         wbc_.set_contact(rd_, 1, 1);
@@ -2060,12 +2056,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 0.5;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.08;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
