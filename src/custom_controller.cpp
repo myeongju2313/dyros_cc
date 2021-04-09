@@ -15,12 +15,12 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-// ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-// ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+// ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -79,7 +79,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            //hip_compensator();
+            hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -97,7 +97,7 @@ void CustomController::computeSlow()
             }               
             
             //MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
-            MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << endl;
+            //MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << endl;
             
             desired_q_not_compensated_ = ref_q_;           
 
@@ -139,22 +139,39 @@ void CustomController::updateInitialState()
   {
     //calculateFootStepTotal();
     calculateFootStepTotal_MJ();
-
-    com_float_init_ =  rd_.link_[COM_id].xpos ;  
-
-    pelv_float_init_.linear() = rd_.link_[Pelvis].Rotm;
-    pelv_float_init_.translation() = rd_.link_[Pelvis].xpos;
-    pelv_float_init_.translation()(0) += 0.11;
+        
+    pelv_rpy_current_.setZero();
+    pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
     
-
-    //lfoot_float_init_.linear().setIdentity();
-    lfoot_float_init_.linear() = rd_.link_[Left_Foot].Rotm;
-    lfoot_float_init_.translation() = rd_.link_[Left_Foot].xpos;
+    pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));   
     
-    //rfoot_float_init_.linear().setIdentity();
-    rfoot_float_init_.linear() = rd_.link_[Right_Foot].Rotm;
-    rfoot_float_init_.translation() = rd_.link_[Right_Foot].xpos;
+    pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
+    pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
+    //pelv_float_init_.translation()(0) += 0.11;
+    
+    pelv_float_init_.translation()(0) = 0;
+    pelv_float_init_.translation()(1) = 0;
+
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
+    
+    lfoot_float_init_.translation()(0) = 0;
+    lfoot_float_init_.translation()(1) = 0.1025;
+
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
+    
+    rfoot_float_init_.translation()(0) = 0;
+    rfoot_float_init_.translation()(1) = -0.1025;
+
+    com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
+    
+    com_float_init_(0) = 0;
+    com_float_init_(1) = 0;
+
+    cout << "First " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_(2)*180/3.141592 << endl;
+    
     Eigen::Isometry3d ref_frame;
 
     if(foot_step_(0, 6) == 0)  //right foot support
@@ -170,10 +187,10 @@ void CustomController::updateInitialState()
     pelv_support_euler_init_ = DyrosMath::rot2Euler(pelv_support_init_.linear());
     rfoot_support_euler_init_ = DyrosMath::rot2Euler(rfoot_support_init_.linear());
     lfoot_support_euler_init_ = DyrosMath::rot2Euler(lfoot_support_init_.linear());
-
+     
     supportfoot_float_init_.setZero();
     swingfoot_float_init_.setZero();
-
+     
     if(foot_step_(0,6) == 1) //left suppport foot
     {
       for(int i=0; i<2; i++)
@@ -211,7 +228,6 @@ void CustomController::updateInitialState()
     xi_ = com_support_init_(0); // preview parameter
     yi_ = com_support_init_(1);
     zc_ = com_support_init_(2);
-
     
   }
   else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
@@ -224,7 +240,7 @@ void CustomController::updateInitialState()
     pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
     pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
-    pelv_float_init_.translation()(0) += 0.11;
+    //pelv_float_init_.translation()(0) += 0.11;
       
     lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
     lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
@@ -263,7 +279,7 @@ void CustomController::getRobotState()
   pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
-  pelv_float_current_.translation()(0) += 0.11;
+  //pelv_float_current_.translation()(0) += 0.11;
      
   lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
@@ -654,12 +670,12 @@ void CustomController::calculateFootStepTotal_MJ()
   unsigned int middle_total_step_number = length_to_target/dlength;
   double middle_residual_length = length_to_target - middle_total_step_number*dlength;
 
-  double step_width_init = 0.01;
-  double step_width = 0.02;
+  double step_width_init = 0.00;
+  double step_width = 0.00;
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 8; //
+    middle_total_step_number = 2; //
     dlength = 0;
   }
 
@@ -1023,83 +1039,83 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
+    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
 
-    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
+    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
 
-    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
+    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
-    Kp(15) = 1600.0; Kd(15) = 70.0;
-    Kp(16) = 1600.0; Kd(16) = 70.0;
-    Kp(17) = 1600.0; Kd(17) = 70.0;
-    Kp(18) = 1600.0; Kd(18) = 70.0;
-    Kp(19) = 800.0; Kd(19) = 40.0;
-    Kp(20) = 800.0; Kd(20) = 40.0;
-    Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
-    Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
+    // Kp(15) = 1600.0; Kd(15) = 70.0;
+    // Kp(16) = 1600.0; Kd(16) = 70.0;
+    // Kp(17) = 1600.0; Kd(17) = 70.0;
+    // Kp(18) = 1600.0; Kd(18) = 70.0;
+    // Kp(19) = 800.0; Kd(19) = 40.0;
+    // Kp(20) = 800.0; Kd(20) = 40.0;
+    // Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
+    // Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
    
-    Kp(23) = 800.0; Kd(23) = 40.0; // Neck
-    Kp(24) = 800.0; Kd(24) = 40.0; // Neck
+    // Kp(23) = 800.0; Kd(23) = 40.0; // Neck
+    // Kp(24) = 800.0; Kd(24) = 40.0; // Neck
 
-    Kp(25) = 1600.0; Kd(25) = 70.0;
-    Kp(26) = 1600.0; Kd(26) = 70.0;
-    Kp(27) = 1600.0; Kd(27) = 70.0;
-    Kp(28) = 1600.0; Kd(28) = 70.0;
-    Kp(29) = 800.0; Kd(29) = 40.0;
-    Kp(30) = 800.0; Kd(30) = 40.0;
-    Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
-    Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
+    // Kp(25) = 1600.0; Kd(25) = 70.0;
+    // Kp(26) = 1600.0; Kd(26) = 70.0;
+    // Kp(27) = 1600.0; Kd(27) = 70.0;
+    // Kp(28) = 1600.0; Kd(28) = 70.0;
+    // Kp(29) = 800.0; Kd(29) = 40.0;
+    // Kp(30) = 800.0; Kd(30) = 40.0;
+    // Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
+    // Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
     
-    // Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
-    // Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
-    // Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
-    // Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    // Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    // Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
+    Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
+    Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
+    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
 
-    // Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
-    // Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
-    // Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
-    // Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    // Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    // Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+    Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
+    Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
+    Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
+    Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
+    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
 
-    // Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
-    // Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
-    // Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+    Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
+    Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
+    Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
         
-    // Kp(15) = 400.0; Kd(15) = 10.0;
-    // Kp(16) = 800.0; Kd(16) = 10.0;
-    // Kp(17) = 400.0; Kd(17) = 10.0;
-    // Kp(18) = 400.0; Kd(18) = 10.0;
-    // Kp(19) = 250.0; Kd(19) = 2.5;
-    // Kp(20) = 250.0; Kd(20) = 2.0;
-    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
-    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
+    Kp(15) = 400.0; Kd(15) = 10.0;
+    Kp(16) = 800.0; Kd(16) = 10.0;
+    Kp(17) = 400.0; Kd(17) = 10.0;
+    Kp(18) = 400.0; Kd(18) = 10.0;
+    Kp(19) = 250.0; Kd(19) = 2.5;
+    Kp(20) = 250.0; Kd(20) = 2.0;
+    Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
    
-    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
-    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
+    Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    Kp(24) = 50.0; Kd(24) = 2.0; // Neck
 
-    // Kp(25) = 400.0; Kd(25) = 10.0;
-    // Kp(26) = 800.0; Kd(26) = 10.0;
-    // Kp(27) = 400.0; Kd(27) = 10.0;
-    // Kp(28) = 400.0; Kd(28) = 10.0;
-    // Kp(29) = 250.0; Kd(29) = 2.5;
-    // Kp(30) = 250.0; Kd(30) = 2.0;
-    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
+    Kp(25) = 400.0; Kd(25) = 10.0;
+    Kp(26) = 800.0; Kd(26) = 10.0;
+    Kp(27) = 400.0; Kd(27) = 10.0;
+    Kp(28) = 400.0; Kd(28) = 10.0;
+    Kp(29) = 250.0; Kd(29) = 2.5;
+    Kp(30) = 250.0; Kd(30) = 2.0;
+    Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -1680,7 +1696,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
         preview_x(0) = x_i;
         preview_y(0) = y_i;
         UX = 0; UY = 0;
-        cout << preview_x << "," << preview_y << endl;
+        cout << "preview X state : " << preview_x(0) << "," << preview_x(1) << "," << preview_x(2) << endl;
+        cout << "preview Y state : " << preview_y(0) << "," << preview_y(1) << "," << preview_y(2) << endl;
     }
     else
     {     
@@ -1717,7 +1734,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     if(walking_tick_mj == 0)
     {
-      del_zmp.setZero(); cout << del_zmp(0) << "," << del_zmp(1) << endl;
+      del_zmp.setZero(); cout << "del_zmp : " << del_zmp(0) << "," << del_zmp(1) << endl;
     }
     
     del_ux(0,0) = -(px(0) - px_ref(tick))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
@@ -1748,7 +1765,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
-    
+    MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << "," << py_ref(tick) << endl;
 }
 
 void CustomController::SC_err_compen(double x_des, double y_des)
@@ -1900,8 +1917,8 @@ void CustomController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
 {
     Eigen::Vector3d R_r, R_D, L_r, L_D ;
 
-    L_D << 0.0 , +0.1025, -0.1025;
-    R_D << 0.0 , -0.1025, -0.1025;
+    L_D << 0.11 , +0.1025, -0.1025;
+    R_D << 0.11 , -0.1025, -0.1025;
 
     L_r = float_lleg_transform.rotation().transpose() * (float_trunk_transform.translation() + float_trunk_transform.rotation()*L_D - float_lleg_transform.translation());
     R_r = float_rleg_transform.rotation().transpose() * (float_trunk_transform.translation() + float_trunk_transform.rotation()*R_D - float_rleg_transform.translation());
@@ -2056,11 +2073,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
+    target_theta_ = 0.3;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2101,7 +2118,7 @@ void CustomController::updateNextStepTime()
     }
    if(current_step_num_ == total_step_num_-1 && walking_tick_mj >= t_last_ + t_total_)
    {
-     walking_enable_ = false;
+     walking_enable_ = false; cout << "Last " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_(2)*180/3.141592 << endl;
    }
    walking_tick_mj ++;
 }
