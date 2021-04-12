@@ -79,7 +79,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            hip_compensator();
+            //hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -693,7 +693,7 @@ void CustomController::calculateFootStepTotal_MJ()
   int del_size;
 
   del_size = 1;
-  number_of_foot_step = initial_total_step_number*del_size + middle_total_step_number*del_size + final_total_step_number*del_size;
+  number_of_foot_step = 2 + initial_total_step_number*del_size + middle_total_step_number*del_size + final_total_step_number*del_size;
 
   if(initial_total_step_number != 0 || abs(initial_residual_angle) >= 0.0001)
   {
@@ -748,6 +748,46 @@ void CustomController::calculateFootStepTotal_MJ()
   temp2 = -is_right;
   temp3 = -is_right;
 
+  int temp0;
+  temp0 = -is_right;
+
+  double initial_dir = 0.0;
+
+  if(aa == 0)
+  {
+    for (int i = 0 ; i < 2; i++)
+    {
+      temp0 *= -1;
+
+      if(i == 0)
+      {
+        foot_step_(index,0) = cos(initial_dir)*(0.0) + temp0*sin(initial_dir)*(0.1025 + step_width_init*(i+1));
+        foot_step_(index,1) = sin(initial_dir)*(0.0) - temp0*cos(initial_dir)*(0.1025 + step_width_init*(i+1));
+      }
+      else if(i == 1)
+      {
+        foot_step_(index,0) = cos(initial_dir)*(0.0) + temp0*sin(initial_dir)*(0.1025 + step_width_init*(i+1));
+        foot_step_(index,1) = sin(initial_dir)*(0.0) - temp0*cos(initial_dir)*(0.1025 + step_width_init*(i+1));
+      }     
+      
+      foot_step_(index,5) = initial_dir;
+      foot_step_(index,6) = 0.5 + 0.5*temp0;
+      index ++;
+    }
+  }
+  else if(aa == 1)
+  {
+    for (int i = 0 ; i < 2; i++)
+    {
+      temp0 *= -1;
+
+      foot_step_(index,0) = cos(initial_dir)*(0.0) + temp0*sin(initial_dir)*(0.1025 + step_width);
+      foot_step_(index,1) = sin(initial_dir)*(0.0) - temp0*cos(initial_dir)*(0.1025 + step_width);
+      foot_step_(index,5) = initial_dir;
+      foot_step_(index,6) = 0.5 + 0.5*temp0;
+      index ++;
+    }
+  }
 
   if(initial_total_step_number != 0 || abs(initial_residual_angle) >= 0.0001) // 첫번째 회전
   {
@@ -823,56 +863,17 @@ void CustomController::calculateFootStepTotal_MJ()
 
   if(middle_total_step_number != 0 || abs(middle_residual_length) >= 0.0001) // 직진, 제자리 보행
   {
-    if(aa == 0)
-    {
-      for (int i = 0 ; i < 2; i++)
-      {
-        temp2 *= -1;
-
-        if(i == 0)
-        {
-          foot_step_(index,0) = cos(initial_rot)*(dlength*(i+1)) + temp2*sin(initial_rot)*(0.1025 + step_width_init*(i+1));
-          foot_step_(index,1) = sin(initial_rot)*(dlength*(i+1)) - temp2*cos(initial_rot)*(0.1025 + step_width_init*(i+1));
-        }
-        else if(i == 1)
-        {
-          foot_step_(index,0) = cos(initial_rot)*(dlength*(i+1)) + temp2*sin(initial_rot)*(0.1025 + step_width_init*(i+1));
-          foot_step_(index,1) = sin(initial_rot)*(dlength*(i+1)) - temp2*cos(initial_rot)*(0.1025 + step_width_init*(i+1));
-        }     
-        
-        foot_step_(index,5) = initial_rot;
-        foot_step_(index,6) = 0.5 + 0.5*temp2;
-        index ++;
-      }
-
-      for (int i = 2 ; i < middle_total_step_number; i++)
-      {
-        temp2 *= -1;
-        
-        foot_step_(index,0) = cos(initial_rot)*(dlength*(i+1)) + temp2*sin(initial_rot)*(0.1025 + step_width);
-        foot_step_(index,1) = sin(initial_rot)*(dlength*(i+1)) - temp2*cos(initial_rot)*(0.1025 + step_width);      
-        
-        foot_step_(index,5) = initial_rot;
-        foot_step_(index,6) = 0.5 + 0.5*temp2;
-        index ++;
-      }
-    }
-    else if(aa == 1)
-    {
-      for (int i = 0 ; i < middle_total_step_number; i++)
-      {
-        temp2 *= -1;
-        
-        foot_step_(index,0) = cos(initial_rot)*(dlength*(i+1)) + temp2*sin(initial_rot)*(0.1025 + step_width);
-        foot_step_(index,1) = sin(initial_rot)*(dlength*(i+1)) - temp2*cos(initial_rot)*(0.1025 + step_width);      
-        
-        foot_step_(index,5) = initial_rot;
-        foot_step_(index,6) = 0.5 + 0.5*temp2;
-        index ++;
-      }
-
-    }
     
+    for (int i = 0 ; i < middle_total_step_number; i++)
+    {
+      temp2 *= -1;
+
+      foot_step_(index,0) = cos(initial_rot)*(dlength*(i+1)) + temp2*sin(initial_rot)*(0.1025 + step_width);
+      foot_step_(index,1) = sin(initial_rot)*(dlength*(i+1)) - temp2*cos(initial_rot)*(0.1025 + step_width);
+      foot_step_(index,5) = initial_rot;
+      foot_step_(index,6) = 0.5 + 0.5*temp2;
+      index ++;
+    }
 
     if(temp2 == is_right)
     {
@@ -1793,7 +1794,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
-    MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << "," << py_ref(tick) << endl;
+    //MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << "," << py_ref(tick) << endl;
 }
 
 void CustomController::SC_err_compen(double x_des, double y_des)
@@ -2056,11 +2057,13 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
+      Gravity_SSP_(1) = 1.0*Gravity_SSP_(1);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
+      Gravity_SSP_(7) = 1.0*Gravity_SSP_(7);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2094,7 +2097,7 @@ void CustomController::GravityCalculate_MJ()
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, 1.0, 0); }
   }
-
+  //MJ_graph << Gravity_SSP_(1) << "," << Gravity_SSP_(7) << endl;
   Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ + contact_torque_MJ;
 }
 
@@ -2105,7 +2108,7 @@ void CustomController::parameterSetting()
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.5236;
+    target_theta_ = 0.0;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2117,8 +2120,8 @@ void CustomController::parameterSetting()
     t_double2_ = 0.03*hz_;
     t_total_= 1.3*hz_;
 
-    // t_rest_init_ = 0.17*hz_;
-    // t_rest_last_ = 0.17*hz_;  
+    // t_rest_init_ = 0.22*hz_;
+    // t_rest_last_ = 0.22*hz_;  
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
     // t_total_= 1.2*hz_;
