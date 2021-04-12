@@ -79,7 +79,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            //hip_compensator();
+            hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -684,7 +684,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 6; //
+    middle_total_step_number = 4; //
     dlength = 0;
   }
 
@@ -2057,13 +2057,13 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(1) = 1.0*Gravity_SSP_(1);
+      //Gravity_SSP_(1) = 1.2*Gravity_SSP_(1);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(7) = 1.0*Gravity_SSP_(7);
+      //Gravity_SSP_(7) = 1.2*Gravity_SSP_(7);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2104,27 +2104,27 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 0.5;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
+    target_theta_ = 0.7;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
     // 1.4 Hz 실험
-    t_rest_init_ = 0.27*hz_;
-    t_rest_last_ = 0.27*hz_;  
-    t_double1_ = 0.03*hz_;
-    t_double2_ = 0.03*hz_;
-    t_total_= 1.3*hz_;
-
-    // t_rest_init_ = 0.22*hz_;
-    // t_rest_last_ = 0.22*hz_;  
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;  
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
-    // t_total_= 1.2*hz_;
+    // t_total_= 1.3*hz_;
+
+    t_rest_init_ = 0.22*hz_;
+    t_rest_last_ = 0.22*hz_;  
+    t_double1_ = 0.03*hz_;
+    t_double2_ = 0.03*hz_;
+    t_total_= 1.2*hz_;
 
     t_temp_ = 4.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
@@ -2132,7 +2132,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.04; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -2157,7 +2157,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.6*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -1.50*DEG2RAD, right_hip_roll_first = -1.50*DEG2RAD, //실험, 제자리 0.5, 0.3
+  double left_hip_roll = -0.7*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.00*DEG2RAD, right_hip_roll_first = -1.00*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
