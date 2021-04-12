@@ -2114,17 +2114,17 @@ void CustomController::parameterSetting()
     is_right_foot_swing_ = 1;
 
     // 1.4 Hz 실험
-    // t_rest_init_ = 0.27*hz_;
-    // t_rest_last_ = 0.27*hz_;  
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
-    // t_total_= 1.3*hz_;
-
-    t_rest_init_ = 0.22*hz_;
-    t_rest_last_ = 0.22*hz_;  
+    t_rest_init_ = 0.27*hz_;
+    t_rest_last_ = 0.27*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 1.2*hz_;
+    t_total_= 1.3*hz_;
+
+    // t_rest_init_ = 0.22*hz_;
+    // t_rest_last_ = 0.22*hz_;  
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.2*hz_;
 
     t_temp_ = 4.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
