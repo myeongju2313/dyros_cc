@@ -2057,13 +2057,13 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      //Gravity_SSP_(1) = 1.2*Gravity_SSP_(1);
+      Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      //Gravity_SSP_(7) = 1.2*Gravity_SSP_(7);
+      Gravity_SSP_(7) = 1.35*Gravity_SSP_(7);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2104,7 +2104,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
+    target_x_ = 0.6;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -2157,7 +2157,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.9*DEG2RAD, right_hip_roll = -0.9*DEG2RAD, left_hip_roll_first = -1.10*DEG2RAD, right_hip_roll_first = -1.00*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.4*DEG2RAD, right_hip_roll = -0.15*DEG2RAD, left_hip_roll_first = -0.70*DEG2RAD, right_hip_roll_first = -0.70*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
