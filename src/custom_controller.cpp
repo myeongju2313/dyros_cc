@@ -2157,7 +2157,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.7*DEG2RAD, right_hip_roll = -0.5*DEG2RAD, left_hip_roll_first = -1.00*DEG2RAD, right_hip_roll_first = -1.00*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.9*DEG2RAD, right_hip_roll = -0.9*DEG2RAD, left_hip_roll_first = -1.10*DEG2RAD, right_hip_roll_first = -1.00*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
