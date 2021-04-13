@@ -2058,14 +2058,14 @@ void CustomController::GravityCalculate_MJ()
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
       Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
-      //Gravity_SSP_(5) = 1.1*Gravity_SSP_(1);
+      Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
       Gravity_SSP_(7) = 1.3*Gravity_SSP_(7);
-      //Gravity_SSP_(11) = 1.1*Gravity_SSP_(11);
+      Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2106,11 +2106,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.15;
-    target_y_ = 0.05;
+    target_x_ = 0.5;
+    target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = -0.5;
+    target_theta_ = 0.5;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2159,7 +2159,7 @@ void CustomController::updateNextStepTime()
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.2*DEG2RAD, left_hip_roll_first = -0.70*DEG2RAD, right_hip_roll_first = -0.70*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.1*DEG2RAD, right_hip_roll = -0.1*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
@@ -2278,7 +2278,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   d_hat = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*d_hat + 1/(1+2*M_PI*8.0*del_t)*d_hat_b;
 
   double default_gain = 0.0;
-  double compliant_gain = 0.3;
+  double compliant_gain = 0.2;
   double compliant_tick = 0.1*hz_;
   double gain_temp = 0.0;
   for (int i = 0; i < 12; i ++)
