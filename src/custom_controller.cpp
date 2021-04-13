@@ -794,8 +794,8 @@ void CustomController::calculateFootStepTotal_MJ()
     for (int i =0 ; i < initial_total_step_number; i++)
     {
       temp *= -1;
-      foot_step_(index,0) = temp*0.1025*sin((i+1)*initial_drot);
-      foot_step_(index,1) = -temp*0.1025*cos((i+1)*initial_drot);
+      foot_step_(index,0) = temp*(0.1025 + step_width)*sin((i+1)*initial_drot);
+      foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((i+1)*initial_drot);
       foot_step_(index,5) = (i+1)*initial_drot;
       foot_step_(index,6) = 0.5 + 0.5*temp;
       index++;
@@ -807,24 +807,24 @@ void CustomController::calculateFootStepTotal_MJ()
       {
         temp *= -1;
 
-        foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-        foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
         foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
         foot_step_(index,6) = 0.5 + 0.5*temp;
         index++;
 
         temp *= -1;
 
-        foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-        foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot+initial_residual_angle);
+        foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot+initial_residual_angle);
         foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
         foot_step_(index,6) = 0.5 + 0.5*temp;
         index++;
 
         temp *= -1;
 
-        foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-        foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot+initial_residual_angle);
+        foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot+initial_residual_angle);
         foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
         foot_step_(index,6) = 0.5 + 0.5*temp;
         index++;
@@ -834,8 +834,8 @@ void CustomController::calculateFootStepTotal_MJ()
       {
         temp *= -1;
 
-        foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-        foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+        foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
         foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
         foot_step_(index,6) = 0.5 + 0.5*temp;
         index++;
@@ -845,16 +845,16 @@ void CustomController::calculateFootStepTotal_MJ()
     {
       temp *= -1;
 
-      foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-      foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
+      foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+      foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
       foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
       foot_step_(index,6) = 0.5 + 0.5*temp;
       index ++;
 
       temp *= -1;
 
-      foot_step_(index,0) = temp*0.1025*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
-      foot_step_(index,1) = -temp*0.1025*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
+      foot_step_(index,0) = temp*(0.1025 + step_width)*sin((initial_total_step_number)*initial_drot + initial_residual_angle);
+      foot_step_(index,1) = -temp*(0.1025 + step_width)*cos((initial_total_step_number)*initial_drot + initial_residual_angle);
       foot_step_(index,5) = (initial_total_step_number)*initial_drot + initial_residual_angle;
       foot_step_(index,6) = 0.5 + 0.5*temp;
       index ++;
@@ -2058,12 +2058,14 @@ void CustomController::GravityCalculate_MJ()
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
       Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
+      //Gravity_SSP_(5) = 1.1*Gravity_SSP_(1);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
       Gravity_SSP_(7) = 1.3*Gravity_SSP_(7);
+      //Gravity_SSP_(11) = 1.1*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2104,11 +2106,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
-    target_y_ = 0.0;
+    target_x_ = 0.15;
+    target_y_ = 0.05;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.7;
+    target_theta_ = -0.5;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
