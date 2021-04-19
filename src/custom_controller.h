@@ -48,8 +48,12 @@ public:
   
   void SC_err_compen(double x_des, double y_des);
 
-   void CP_compen_MJ();
-
+  void CP_compen_MJ();
+  void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
+  double U_ZMP_y_ssp = 0;
+  double U_ZMP_x_ssp = 0;
+  double damping_x = 0;
+  double damping_y = 0;
   Eigen::Vector2d Tau_R;
   Eigen::Vector2d Tau_L;
 
@@ -205,6 +209,30 @@ public:
   Eigen::MatrixXd foot_step_support_frame_;
   Eigen::MatrixXd foot_step_support_frame_offset_;
 
+  // Com damping control - ZMP tracking controller
+  Eigen::MatrixXd A_y_ssp;
+  Eigen::MatrixXd B_y_ssp;
+  Eigen::MatrixXd Ad_y_ssp;
+  Eigen::MatrixXd Bd_y_ssp;
+  Eigen::MatrixXd C_y_ssp;
+  Eigen::MatrixXd D_y_ssp;
+  Eigen::MatrixXd K_y_ssp;
+  Eigen::MatrixXd Y_y_ssp;
+  Eigen::Vector2d X_y_ssp;
+  
+  Eigen::MatrixXd A_x_ssp;
+  Eigen::MatrixXd B_x_ssp;
+
+  Eigen::MatrixXd Ad_x_ssp;
+  Eigen::MatrixXd Bd_x_ssp;
+  Eigen::MatrixXd C_x_ssp;
+  Eigen::MatrixXd D_x_ssp;
+  Eigen::MatrixXd K_x_ssp;
+  Eigen::MatrixXd Y_x_ssp;
+  Eigen::Vector2d X_x_ssp;
+  Eigen::MatrixXd ff_gain_y_ssp;
+  Eigen::MatrixXd ff_gain_x_ssp;
+  //
   Eigen::VectorQd contact_torque_MJ;
   Eigen::VectorQd Initial_ref_q_;
   Eigen::VectorQd Initial_ref_q_walk_;
