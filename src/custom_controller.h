@@ -51,6 +51,7 @@ public:
   void CP_compen_MJ();
   void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
   double U_ZMP_y_ssp = 0;
+  double U_ZMP_y_ssp_LPF = 0;
   double U_ZMP_x_ssp = 0;
   double damping_x = 0;
   double damping_y = 0;

@@ -95,10 +95,7 @@ void CustomController::computeSlow()
               ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ;  
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
             }               
-            
-            //MJ_joint << Gravity_MJ_(5) << "," << Gravity_MJ_(11) << "," << -Tau_L(1) << "," << -Tau_R(1) << "," << com_desired_(1) << endl;
-            //MJ_graph << cp_desired_(1) << "," << com_desired_(1) << "," << cp_measured_(1) << "," << com_support_current_(1) << endl;
-            
+                        
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
@@ -684,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 4; //
+    middle_total_step_number = 10; //
     dlength = 0;
   }
 
@@ -1151,8 +1148,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.03;
-  rfoot_zmp_offset_ = 0.03;
+  lfoot_zmp_offset_ = -0.025;
+  rfoot_zmp_offset_ = 0.025;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -1196,11 +1193,6 @@ void CustomController::getZmpTrajectory()
     norm_size = norm_size + t_temp_ + 1;
   addZmpOffset();  
   zmpGenerator(norm_size, planning_step_number);
-
-  //if(current_step_num_ == 0)
-  //{ MJ_graph << ref_zmp_(walking_tick_mj,0) << "," << ref_zmp_(walking_tick_mj,1)  << endl; }
-  //else
-  //{ MJ_graph << ref_zmp_(walking_tick_mj - t_start_, 0) + current_step_num_*0 << "," << ref_zmp_(walking_tick_mj - t_start_,1)  << endl; }
 }
 
 void CustomController::zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num)
@@ -1795,9 +1787,9 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
-    //CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << XD(0) << "," << com_support_current_(0) << "," << damping_y << endl;
-    //MJ_graph << com_support_current_(0) << "," << com_float_current_dot_LPF(0) << "," << com_float_current_dot(0) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
+    CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
+    MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
+    
 }
 
 void CustomController::SC_err_compen(double x_des, double y_des)
@@ -1850,7 +1842,7 @@ void CustomController::getPelvTrajectory()
   double z_rot = foot_step_support_frame_(current_step_num_,5);  
   //MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0)  - com_support_current_(0)) - 0*damping_x;//- 0.01 * zmp_err_(0) * 0;
-  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
+  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.5*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
        
   Eigen::Vector3d Trunk_trajectory_euler;
@@ -2164,7 +2156,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   double Kp_x_ssp, Kv_x_ssp;
   double Kp_y_ssp, Kv_y_ssp;
   Kp_x_ssp = 50; Kv_x_ssp = 2;
-  Kp_y_ssp = 80; Kv_y_ssp = 5; 
+  Kp_y_ssp = 40; Kv_y_ssp = 2; 
   double del_t = 0.0005;
 
   if(walking_tick_mj == 0)
@@ -2198,8 +2190,8 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     K_x_ssp(0,0) = -0.02;      
     K_x_ssp(0,1) = 0.156; 
 
-    K_y_ssp(0,0) = -0.2;  
-    K_y_ssp(0,1) = 0.1175; 
+    K_y_ssp(0,0) = -0.375;  
+    K_y_ssp(0,1) = 0.125; 
     
     // Define the state space equation 
     A_x_ssp(0,0) = 0;
@@ -2253,40 +2245,26 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   X_x_ssp(1) = com_float_current_dot_LPF(0);
 
   X_y_ssp(0) = com_float_current_(1);
-  X_y_ssp(1) = com_float_current_dot_LPF(1); 
+  //X_y_ssp(1) = com_float_current_dot_LPF(1); 
+
+  if(walking_tick_mj == 0)
+  {
+    X_y_ssp(1) = com_float_current_dot_LPF(1); 
+  }
 
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*X_x_ssp(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
-  U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*X_y_ssp(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
+  U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
   
   //Y_y_ssp = C_y_ssp*X_y_ssp + D_y_ssp*U_ZMP_y_ssp;  
-  //X_y_ssp = Ad_y_ssp*X_y_ssp + Bd_y_ssp*U_ZMP_y_ssp;
-   
-  // double C_gain = 0;
-  // if(walking_tick_mj < t_start_ + t_rest_init_ )
-  // {
-  //   C_gain = 1.0;
-  // }
-  // else if(walking_tick_mj >= t_start_ + t_rest_init_ && walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ ) // 0.03 s  
-  // {
-  //   C_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_rest_init_, t_start_ + t_rest_init_ + t_double1_, 1.0, 0.0, 0.0, 0.0);    
-  // }
-  // else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_) // SSP
-  // {
-  //   C_gain = 0.0; 
-  // }
-  // else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ && walking_tick_mj < t_start_ + t_total_ - t_rest_last_)
-  // {
-  //   C_gain = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_, t_start_ + t_total_ - t_rest_last_, 0.0, 1.0, 0.0, 0.0);
+  X_y_ssp = Ad_y_ssp*X_y_ssp + Bd_y_ssp*U_ZMP_y_ssp;
     
-  // }
-  // else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
-  // {
-  //   C_gain = 1.0;      
-  // }
-  //damping_y = C_gain * U_ZMP_y_dsp + (1 - C_gain) * U_ZMP_y_ssp ;
   damping_x = U_ZMP_x_ssp ;
   damping_y = U_ZMP_y_ssp ;
-    
+
+  if(damping_y > 0.02)
+  { damping_y = 0.02; }
+  else if(damping_y < - 0.02)
+  { damping_y = -0.02; }  
 }
 
 void CustomController::hip_compensator()
@@ -2497,15 +2475,6 @@ void CustomController::CP_compen_MJ()
 
   Tau_CP(5) = -F_L * del_zmp(1); // L roll
   Tau_CP(11) = -F_R * del_zmp(1); // R roll
-
-  // Tau_L(0) = F_L * del_zmp(0); 
-  // Tau_R(0) = F_R * del_zmp(0);
-
-  // Tau_L(1) = F_L * del_zmp(1); 
-  // Tau_R(1) = F_R * del_zmp(1);
-
-  //MJ_graph << cp_desired_(0) << "," << cp_desired_(1) << "," << cp_measured_(0) << "," << cp_measured_(1) << "," << com_desired_(1) << "," <<  F_R << "," << F_L << endl;
-  //cout << "R :" << Tau_R(0) << "," << Tau_R(1) <<  "L :" << Tau_L(0) << "," << Tau_L(1) << endl;
 }
 
 void CustomController::computePlanner()
