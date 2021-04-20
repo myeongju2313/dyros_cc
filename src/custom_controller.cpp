@@ -681,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 16; //
     dlength = 0;
   }
 
@@ -1782,7 +1782,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_desired_(1) = YD(0) + YD(1)/wn;
 
     cp_measured_(0) = com_support_current_(0) + com_float_current_dot_LPF(0)/wn;
-    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;
+    cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
@@ -1842,7 +1842,7 @@ void CustomController::getPelvTrajectory()
   double z_rot = foot_step_support_frame_(current_step_num_,5);  
   //MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0)  - com_support_current_(0)) - 0*damping_x;//- 0.01 * zmp_err_(0) * 0;
-  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.5*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
+  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.55*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
        
   Eigen::Vector3d Trunk_trajectory_euler;
@@ -2052,14 +2052,14 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
+      Gravity_SSP_(1) = 1.35*Gravity_SSP_(1);
       Gravity_SSP_(5) = 1.15*Gravity_SSP_(5); 
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.3*Gravity_SSP_(7);
+      Gravity_SSP_(7) = 1.5*Gravity_SSP_(7);
       Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
@@ -2102,7 +2102,7 @@ void CustomController::GravityCalculate_MJ()
 void CustomController::parameterSetting()
 {
     target_x_ = 0.0;
-    target_y_ = 0.0;
+    target_y_ = 0.00;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
@@ -2261,8 +2261,8 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   damping_x = U_ZMP_x_ssp ;
   damping_y = U_ZMP_y_ssp ;
 
-  if(damping_y > 0.02)
-  { damping_y = 0.02; }
+  if(damping_y > 0.03)
+  { damping_y = 0.03; }
   else if(damping_y < - 0.02)
   { damping_y = -0.02; }  
 }
