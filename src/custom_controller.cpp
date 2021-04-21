@@ -1148,8 +1148,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.025;
-  rfoot_zmp_offset_ = 0.025;
+  lfoot_zmp_offset_ = -0.015;
+  rfoot_zmp_offset_ = 0.015;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -1789,7 +1789,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
     //MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << XD(0) << "," << com_support_current_(0) << "," << damping_x << endl;
-    //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
+    MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
 
@@ -2060,7 +2060,7 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
+      Gravity_SSP_(7) = 1.45*Gravity_SSP_(7);
       Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
@@ -2102,7 +2102,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 1.0;
+    target_x_ = 0.5;
     target_y_ = 0.00;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -2257,13 +2257,13 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   damping_x = U_ZMP_x_ssp ;
   damping_y = U_ZMP_y_ssp ;
 
-  if(damping_x > 0.03) // 로봇 0.03, 시뮬 0.02
-  { damping_x = 0.03; }
-  else if(damping_x < - 0.03)
-  { damping_x = -0.03; } 
+  if(damping_x > 0.01) // 로봇 0.03, 시뮬 0.02
+  { damping_x = 0.01; }
+  else if(damping_x < - 0.01)
+  { damping_x = -0.01; } 
 
-  if(damping_y > 0.02) // 로봇 0.03, 시뮬 0.02
-  { damping_y = 0.02; }
+  if(damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
+  { damping_y = 0.03; }
   else if(damping_y < - 0.02)
   { damping_y = -0.02; }  
 }
