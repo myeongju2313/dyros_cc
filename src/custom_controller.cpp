@@ -681,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 16; //
+    middle_total_step_number = 8; //
     dlength = 0;
   }
 
@@ -2059,7 +2059,7 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.5*Gravity_SSP_(7);
+      Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
       Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
