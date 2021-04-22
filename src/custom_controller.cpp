@@ -681,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 4; //
     dlength = 0;
   }
 
@@ -2243,17 +2243,19 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   }  
 
   X_x_ssp(0) = com_float_current_(0);
-  //X_x_ssp(1) = com_float_current_dot_LPF(0);
 
-  X_y_ssp(0) = com_float_current_(1);
-  //X_y_ssp(1) = com_float_current_dot_LPF(1); 
- 
+  Eigen::Vector3d ZZ;
+  ZZ.setZero();
+  if(foot_step_(current_step_num_, 6) == 1)
+  { ZZ(1) = com_support_current_(1) + 0.1225; }
+  else if(foot_step_(current_step_num_, 6) == 0)
+  { ZZ(1) = com_support_current_(1) - 0.1225; }
+
+  X_y_ssp(0) = ZZ(1);
+  
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*preview_x(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
   U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
-  
-  //Y_y_ssp = C_y_ssp*X_y_ssp + D_y_ssp*U_ZMP_y_ssp;  
-  //X_y_ssp = Ad_y_ssp*X_y_ssp + Bd_y_ssp*U_ZMP_y_ssp;
-    
+      
   damping_x = U_ZMP_x_ssp ;
   damping_y = U_ZMP_y_ssp ;
 
