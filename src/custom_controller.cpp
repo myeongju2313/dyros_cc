@@ -681,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 8; //
+    middle_total_step_number = 10; //
     dlength = 0;
   }
 
@@ -1148,8 +1148,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.015;
-  rfoot_zmp_offset_ = 0.015;
+  lfoot_zmp_offset_ = -0.0175;
+  rfoot_zmp_offset_ = 0.0175;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -1766,7 +1766,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     XD = A*preview_x + B*UX;
     YD = A*preview_y + B*UY;
-    SC_err_compen(XD(0), YD(0));
+    //SC_err_compen(XD(0), YD(0));
     if(walking_tick_mj == 0)
     {      
       zmp_err_(0) = 0;
@@ -2053,14 +2053,14 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(1) = 1.35*Gravity_SSP_(1);
+      Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
       Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.45*Gravity_SSP_(7);
+      Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
       Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
@@ -2102,11 +2102,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
-    target_y_ = 0.00;
+    target_x_ = 0.4;
+    target_y_ = 0.4;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
+    target_theta_ = -0.5;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2270,7 +2270,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.1*DEG2RAD, right_hip_roll = -0.1*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.1*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
