@@ -1789,7 +1789,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
     //MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << XD(0) << "," << com_support_current_(0) << "," << damping_x << endl;
-    MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
+    //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
 
@@ -1841,7 +1841,7 @@ void CustomController::SC_err_compen(double x_des, double y_des)
 void CustomController::getPelvTrajectory()
 {
   double z_rot = foot_step_support_frame_(current_step_num_,5);
-  //MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
+  
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.0*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.55*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
@@ -2103,10 +2103,10 @@ void CustomController::GravityCalculate_MJ()
 void CustomController::parameterSetting()
 {
     target_x_ = 0.4;
-    target_y_ = 0.4;
+    target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = -0.5;
+    target_theta_ = 0.0;
     step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2130,7 +2130,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.06; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -2242,16 +2242,13 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     ff_gain_y_ssp = (-(C_y_ssp - D_y_ssp*K_y_ssp)*((A_y_ssp - B_y_ssp*K_y_ssp).inverse())*B_y_ssp + D_y_ssp).inverse();     
   }  
 
-  X_x_ssp(0) = com_float_current_(0);
+  X_x_ssp(0) = com_float_current_(0); 
 
-  Eigen::Vector3d ZZ;
-  ZZ.setZero();
-  if(foot_step_(current_step_num_, 6) == 1)
-  { ZZ(1) = com_support_current_(1) + 0.1225; }
+  if(foot_step_(current_step_num_, 6) == 1) // 왼발 지지
+  { X_y_ssp(0) = com_support_current_(1) - rfoot_support_current_.translation()(1)*0.5; } 
   else if(foot_step_(current_step_num_, 6) == 0)
-  { ZZ(1) = com_support_current_(1) - 0.1225; }
-
-  X_y_ssp(0) = ZZ(1);
+  { X_y_ssp(0) = com_support_current_(1) - lfoot_support_current_.translation()(1)*0.5; }
+ 
   
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*preview_x(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
   U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
@@ -2267,7 +2264,9 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   if(damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
   { damping_y = 0.03; }
   else if(damping_y < - 0.02)
-  { damping_y = -0.02; }  
+  { damping_y = -0.02; }
+  
+  MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << com_float_current_(1) << "," << X_y_ssp(0) << "," << damping_y << endl;  
 }
 
 void CustomController::hip_compensator()
