@@ -681,7 +681,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 8; //
+    middle_total_step_number = 16; //
     dlength = 0;
   }
 
@@ -1790,7 +1790,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << "," << U_ZMP_x_ssp << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
@@ -1889,7 +1889,7 @@ void CustomController::getPelvTrajectory()
 {
   double z_rot = foot_step_support_frame_(current_step_num_,5);
   
-  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.0*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
+  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.2*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.55*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
        
@@ -2149,12 +2149,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 1.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.1;
+    step_length_x_ = 0.07;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2236,7 +2236,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     Y_y_ssp.resize(1,1); 
 
     K_x_ssp(0,0) = 0.0083;      
-    K_x_ssp(0,1) = 0.19; 
+    K_x_ssp(0,1) = 0.19;//0.19; 
     // Control pole : -5 , damping : 0.7 (실제 로봇) // Control pole : -7 , damping : 0.9 (시뮬레이션)
     K_y_ssp(0,0) = -0.375;  
     K_y_ssp(0,1) = 0.125; 
@@ -2298,14 +2298,18 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*preview_x(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
   U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
-      
-  damping_x = U_ZMP_x_ssp ;
+  
+  U_ZMP_x_ssp_LPF =  1/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp_LPF + (2*M_PI*3.0*del_t)/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp;      
+  if(walking_tick_mj == 0)
+  { U_ZMP_x_ssp_LPF = U_ZMP_x_ssp; }
+
+  damping_x = U_ZMP_x_ssp_LPF ;
   damping_y = U_ZMP_y_ssp ;
 
-  if(damping_x > 0.03)  
-  { damping_x = 0.03; }
-  else if(damping_x < - 0.03)
-  { damping_x = -0.03; } 
+  if(damping_x > 0.02)  
+  { damping_x = 0.02; }
+  else if(damping_x < - 0.02)
+  { damping_x = -0.02; } 
 
   if(damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
   { damping_y = 0.03; }
@@ -2318,7 +2322,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 void CustomController::hip_compensator()
 {  
   double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.1*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
-  left_hip_pitch = 0.7*DEG2RAD, right_hip_pitch = 0.7*DEG2RAD, left_hip_pitch_first = 0.70*DEG2RAD, right_hip_pitch_first = 0.70*DEG2RAD, // 실험 , 제자리 0.75deg
+  left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
 

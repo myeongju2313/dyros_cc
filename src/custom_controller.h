@@ -53,6 +53,7 @@ public:
   double U_ZMP_y_ssp = 0;
   double U_ZMP_y_ssp_LPF = 0;
   double U_ZMP_x_ssp = 0;
+  double U_ZMP_x_ssp_LPF = 0;
   double damping_x = 0;
   double damping_y = 0;
   Eigen::Vector2d Tau_R;
