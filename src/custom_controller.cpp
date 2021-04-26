@@ -1790,7 +1790,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << com_float_current_(0) << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
