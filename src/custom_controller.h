@@ -103,6 +103,7 @@ public:
   Eigen::Vector3d com_support_current_LPF;
   Eigen::Vector3d com_float_current_LPF;
   Eigen::Vector3d com_support_current_prev;
+  Eigen::Vector3d com_support_cp_;
 
   Eigen::Vector3d com_float_current_dot;
   Eigen::Vector3d com_float_current_dot_prev;

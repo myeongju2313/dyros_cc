@@ -1781,17 +1781,64 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_desired_(0) = XD(0) + XD(1)/wn;
     cp_desired_(1) = YD(0) + YD(1)/wn;
 
-    cp_measured_(0) = com_support_current_(0) + com_float_current_dot_LPF(0)/wn;
+    SC_err_compen(com_support_current_(0), com_support_current_(1));
+
+    cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    //MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << XD(0) << "," << com_support_current_(0) << "," << damping_x << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << com_float_current_(0) << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
+
+// void CustomController::SC_err_compen(double x_des, double y_des)
+// { 
+//   if(walking_tick_mj == 0)
+//   {
+//     SC_com.setZero();
+//   }
+//   if (walking_tick_mj == t_start_ + t_total_-1 && current_step_num_ != total_step_num_-1) // step change 1 tick 이전
+//   {  
+//     sc_err_before.setZero();
+//     sc_err_before(0) = x_des - com_support_current_(0); // 1.3으로 할꺼면 마지막에 더해야됨. SC_com을 이 함수보다 나중에 더하기 때문에
+//     sc_err_before(1) = y_des - com_support_current_(1);
+//   }
+
+//   if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change 
+//   { 
+//     sc_err_after.setZero();
+//     sc_err_after(0) = x_des - com_support_current_(0); 
+//     sc_err_after(1) = y_des - com_support_current_(1);
+//     sc_err = sc_err_after - sc_err_before;
+//   } 
+
+//   if(current_step_num_ != 0)
+//   { 
+//     SC_com(0) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(0), 0, 0.0, 0.0);
+//     SC_com(1) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(1), 0, 0.0, 0.0);
+//   }
+
+//   if(current_step_num_ != total_step_num_ - 1)
+//   {
+//     if(current_step_num_ != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_)
+//     {
+//     com_support_current_(0) = com_support_current_(0) + SC_com(0);
+//     com_support_current_(1) = com_support_current_(1) + SC_com(1);
+//     }
+//   }
+//   else if(current_step_num_ == total_step_num_ - 1)
+//   {
+//     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 2*t_total_)
+//     {  
+//     com_support_current_(0) = com_support_current_(0) + SC_com(0);
+//     com_support_current_(1) = com_support_current_(1) + SC_com(1);
+//     }
+//   }
+// }
 
 void CustomController::SC_err_compen(double x_des, double y_des)
 { 
@@ -1802,39 +1849,39 @@ void CustomController::SC_err_compen(double x_des, double y_des)
   if (walking_tick_mj == t_start_ + t_total_-1 && current_step_num_ != total_step_num_-1) // step change 1 tick 이전
   {  
     sc_err_before.setZero();
-    sc_err_before(0) = x_des - com_support_current_(0); // 1.3으로 할꺼면 마지막에 더해야됨. SC_com을 이 함수보다 나중에 더하기 때문에
-    sc_err_before(1) = y_des - com_support_current_(1);
+    sc_err_before(0) = com_support_current_(0) - foot_step_support_frame_(current_step_num_,0) ; // 1.3으로 할꺼면 마지막에 더해야됨. SC_com을 이 함수보다 나중에 더하기 때문에
+    // sc_err_before(1) = y_des - com_support_current_(1);
   }
 
   if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change 
   { 
     sc_err_after.setZero();
-    sc_err_after(0) = x_des - com_support_current_(0); 
-    sc_err_after(1) = y_des - com_support_current_(1);
+    sc_err_after(0) = com_support_current_(0) ; 
+    // sc_err_after(1) = y_des - com_support_current_(1);
     sc_err = sc_err_after - sc_err_before;
   } 
 
   if(current_step_num_ != 0)
   { 
-    SC_com(0) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(0), 0, 0.0, 0.0);
-    SC_com(1) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(1), 0, 0.0, 0.0);
+    SC_com(0) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + 0.05*hz_, sc_err(0), 0, 0.0, 0.0);
+    SC_com(1) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + 0.05*hz_, sc_err(1), 0, 0.0, 0.0);
   }
 
   if(current_step_num_ != total_step_num_ - 1)
   {
     if(current_step_num_ != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_)
     {
-    com_support_current_(0) = com_support_current_(0) + SC_com(0);
-    com_support_current_(1) = com_support_current_(1) + SC_com(1);
+      com_support_cp_(0) = com_support_current_(0) - SC_com(0);
     }
-  }
+    else
+    {
+      com_support_cp_(0) = com_support_current_(0); 
+    }
+  }  
   else if(current_step_num_ == total_step_num_ - 1)
   {
     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 2*t_total_)
-    {  
-    com_support_current_(0) = com_support_current_(0) + SC_com(0);
-    com_support_current_(1) = com_support_current_(1) + SC_com(1);
-    }
+    { com_support_cp_(0) = com_support_current_(0) - SC_com(0); }
   }
 }
 
@@ -2156,7 +2203,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 { 
   double Kp_x_ssp, Kv_x_ssp;
   double Kp_y_ssp, Kv_y_ssp;
-  Kp_x_ssp = 50; Kv_x_ssp = 2;
+  Kp_x_ssp = 30; Kv_x_ssp = 2;
   Kp_y_ssp = 40; Kv_y_ssp = 2; 
   double del_t = 0.0005;
 
@@ -2188,8 +2235,8 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     X_y_ssp.setZero(); 
     Y_y_ssp.resize(1,1); 
 
-    K_x_ssp(0,0) = -0.02;      
-    K_x_ssp(0,1) = 0.156; 
+    K_x_ssp(0,0) = 0.0083;      
+    K_x_ssp(0,1) = 0.19; 
     // Control pole : -5 , damping : 0.7 (실제 로봇) // Control pole : -7 , damping : 0.9 (시뮬레이션)
     K_y_ssp(0,0) = -0.375;  
     K_y_ssp(0,1) = 0.125; 
@@ -2247,8 +2294,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   if(foot_step_(current_step_num_, 6) == 1) // 왼발 지지
   { X_y_ssp(0) = com_support_current_(1) - rfoot_support_current_.translation()(1)*0.5; } 
   else if(foot_step_(current_step_num_, 6) == 0)
-  { X_y_ssp(0) = com_support_current_(1) - lfoot_support_current_.translation()(1)*0.5; }
- 
+  { X_y_ssp(0) = com_support_current_(1) - lfoot_support_current_.translation()(1)*0.5; } 
   
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*preview_x(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
   U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
@@ -2256,17 +2302,17 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   damping_x = U_ZMP_x_ssp ;
   damping_y = U_ZMP_y_ssp ;
 
-  if(damping_x > 0.01) // 로봇 0.03, 시뮬 0.02
-  { damping_x = 0.01; }
-  else if(damping_x < - 0.01)
-  { damping_x = -0.01; } 
+  if(damping_x > 0.03)  
+  { damping_x = 0.03; }
+  else if(damping_x < - 0.03)
+  { damping_x = -0.03; } 
 
   if(damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
   { damping_y = 0.03; }
   else if(damping_y < - 0.02)
   { damping_y = -0.02; }
   
-  MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << com_float_current_(1) << "," << X_y_ssp(0) << "," << damping_y << endl;  
+  // MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << com_float_current_(1) << "," << X_y_ssp(0) << "," << damping_y << endl;  
 }
 
 void CustomController::hip_compensator()
