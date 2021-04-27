@@ -1083,26 +1083,26 @@ void CustomController::Joint_gain_set_MJ()
     // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
     // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
-    // Kp(15) = 1600.0; Kd(15) = 70.0;
-    // Kp(16) = 1600.0; Kd(16) = 70.0;
-    // Kp(17) = 1600.0; Kd(17) = 70.0;
-    // Kp(18) = 1600.0; Kd(18) = 70.0;
-    // Kp(19) = 800.0; Kd(19) = 40.0;
-    // Kp(20) = 800.0; Kd(20) = 40.0;
-    // Kp(21) = 800.0; Kd(21) = 40.0; // Left Wrist
-    // Kp(22) = 800.0; Kd(22) = 40.0; // Left Wrist
+    // Kp(15) = 400.0; Kd(15) = 10.0;
+    // Kp(16) = 800.0; Kd(16) = 10.0;
+    // Kp(17) = 400.0; Kd(17) = 10.0;
+    // Kp(18) = 400.0; Kd(18) = 10.0;
+    // Kp(19) = 250.0; Kd(19) = 2.5;
+    // Kp(20) = 250.0; Kd(20) = 2.0;
+    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
    
-    // Kp(23) = 800.0; Kd(23) = 40.0; // Neck
-    // Kp(24) = 800.0; Kd(24) = 40.0; // Neck
+    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
 
-    // Kp(25) = 1600.0; Kd(25) = 70.0;
-    // Kp(26) = 1600.0; Kd(26) = 70.0;
-    // Kp(27) = 1600.0; Kd(27) = 70.0;
-    // Kp(28) = 1600.0; Kd(28) = 70.0;
-    // Kp(29) = 800.0; Kd(29) = 40.0;
-    // Kp(30) = 800.0; Kd(30) = 40.0;
-    // Kp(31) = 800.0; Kd(31) = 40.0; // Right Wrist
-    // Kp(32) = 800.0; Kd(32) = 40.0; // Right Wrist
+    // Kp(25) = 400.0; Kd(25) = 10.0;
+    // Kp(26) = 800.0; Kd(26) = 10.0;
+    // Kp(27) = 400.0; Kd(27) = 10.0;
+    // Kp(28) = 400.0; Kd(28) = 10.0;
+    // Kp(29) = 250.0; Kd(29) = 2.5;
+    // Kp(30) = 250.0; Kd(30) = 2.0;
+    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
     
     Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
     Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
@@ -1790,7 +1790,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << "," << U_ZMP_x_ssp << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << "," << com_float_current_(0) << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
@@ -2149,12 +2149,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 1.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.07;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2236,7 +2236,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     Y_y_ssp.resize(1,1); 
 
     K_x_ssp(0,0) = 0.0083;      
-    K_x_ssp(0,1) = 0.19;//0.19; 
+    K_x_ssp(0,1) = 0.19; 
     // Control pole : -5 , damping : 0.7 (실제 로봇) // Control pole : -7 , damping : 0.9 (시뮬레이션)
     K_y_ssp(0,0) = -0.375;  
     K_y_ssp(0,1) = 0.125; 
@@ -2289,7 +2289,8 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
     ff_gain_y_ssp = (-(C_y_ssp - D_y_ssp*K_y_ssp)*((A_y_ssp - B_y_ssp*K_y_ssp).inverse())*B_y_ssp + D_y_ssp).inverse();     
   }  
 
-  X_x_ssp(0) = com_float_current_(0); 
+  //X_x_ssp(0) = com_float_current_(0);
+  X_x_ssp(0) = com_support_current_(0); 
 
   if(foot_step_(current_step_num_, 6) == 1) // 왼발 지지
   { X_y_ssp(0) = com_support_current_(1) - rfoot_support_current_.translation()(1)*0.5; } 
