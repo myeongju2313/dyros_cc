@@ -139,7 +139,7 @@ void CustomController::updateInitialState()
         
     pelv_rpy_current_.setZero();
     pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
-    
+        
     pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));   
     
     pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
@@ -277,6 +277,7 @@ void CustomController::getRobotState()
   pelv_rpy_current_.setZero();
   pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
 
+  P_angle = pelv_rpy_current_(1); 
   pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
   
   pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
@@ -681,7 +682,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 16; //
+    middle_total_step_number = 10; //
     dlength = 0;
   }
 
@@ -1786,11 +1787,11 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
-    del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.5*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.5*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << damping_x << "," << XD(0) << "," << com_support_current_(0) << "," << com_float_current_(0) << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << P_angle * 180 / 3.141592 << "," << XD(0) << "," << com_support_current_(0) << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
@@ -1901,12 +1902,12 @@ void CustomController::getPelvTrajectory()
   else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
   { Trunk_trajectory_euler(2) = DyrosMath::cubic(walking_tick_mj,t_start_real_+t_double1_,t_start_+t_total_-t_double2_-t_rest_last_, pelv_support_euler_init_(2),z_rot/2.0,0.0,0.0); }
   else
-  { Trunk_trajectory_euler(2) = z_rot/2.0; }
-  //pelv_support_start_.linear();  
-  //cout << z_rot *180/M_PI << "," << current_step_num_ << endl;
- 
+  { Trunk_trajectory_euler(2) = z_rot/2.0; } 
+
+  P_angle_i = P_angle_i + (0 - P_angle)*del_t;
+  Trunk_trajectory_euler(1) = 1.0*(0.0 - P_angle) + 1.5*P_angle_i;
+
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
- 
      
 }
 
@@ -2149,7 +2150,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 3.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;

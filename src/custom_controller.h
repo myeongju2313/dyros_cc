@@ -176,6 +176,8 @@ public:
   Eigen::Vector2d zmp_err_;
   Eigen::Vector2d zmp_measured_LPF_;
 
+  double P_angle = 0;
+  double P_angle_i = 0;
   double aa = 0; 
 
   double del_t = 0.0005;
