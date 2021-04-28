@@ -1787,11 +1787,11 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
-    del_zmp(0) = 1.5*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.5*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
+    del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << P_angle * 180 / 3.141592 << "," << XD(0) << "," << com_support_current_(0) << endl;
+    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << P_angle * 180 / 3.141592 << "," << XD(0) << "," << com_support_current_(0) << "," << damping_x << endl;
     //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
     
 }
@@ -1905,7 +1905,7 @@ void CustomController::getPelvTrajectory()
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
   P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  Trunk_trajectory_euler(1) = 1.0*(0.0 - P_angle) + 1.5*P_angle_i;
+  Trunk_trajectory_euler(1) = 0.3*(0.0 - P_angle) + 0.5*P_angle_i;
 
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2150,12 +2150,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 3.0;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.1;
+    step_length_x_ = 0.07;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2323,7 +2323,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.1*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
@@ -2534,4 +2534,3 @@ void CustomController::CP_compen_MJ()
 void CustomController::computePlanner()
 {
 }
-
