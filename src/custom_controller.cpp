@@ -1890,7 +1890,7 @@ void CustomController::getPelvTrajectory()
 {
   double z_rot = foot_step_support_frame_(current_step_num_,5);
   
-  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.2*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
+  pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.55*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
        
@@ -1905,7 +1905,7 @@ void CustomController::getPelvTrajectory()
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
   P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  Trunk_trajectory_euler(1) = 0.3*(0.0 - P_angle) + 0.5*P_angle_i;
+  Trunk_trajectory_euler(1) = 0.125*(0.0 - P_angle) + 1.5*P_angle_i;
 
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2150,12 +2150,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
-    target_y_ = 0.0;
+    target_x_ = 0.4;
+    target_y_ = 0.4;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
-    step_length_x_ = 0.07;
+    target_theta_ = -0.4;
+    step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2178,7 +2178,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
