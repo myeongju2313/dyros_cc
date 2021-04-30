@@ -1891,7 +1891,7 @@ void CustomController::getPelvTrajectory()
   double z_rot = foot_step_support_frame_(current_step_num_,5);
   
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
-  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.55*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
+  pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.6*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
        
   Eigen::Vector3d Trunk_trajectory_euler;
@@ -1905,7 +1905,7 @@ void CustomController::getPelvTrajectory()
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
   P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 3.0*P_angle_i;
+  Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 2.0*P_angle_i;
 
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2150,7 +2150,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
@@ -2166,10 +2166,10 @@ void CustomController::parameterSetting()
     t_double2_ = 0.03*hz_;
     t_total_= 1.3*hz_;
 
-    // t_rest_init_ = 0.22*hz_;
-    // t_rest_last_ = 0.22*hz_;  
-    // t_double1_ = 0.03*hz_;
-    // t_double2_ = 0.03*hz_;
+    // t_rest_init_ = 0.23*hz_;
+    // t_rest_last_ = 0.23*hz_;  
+    // t_double1_ = 0.02*hz_;
+    // t_double2_ = 0.02*hz_;
     // t_total_= 1.2*hz_;
 
     t_temp_ = 4.0*hz_;
@@ -2324,7 +2324,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.2*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
