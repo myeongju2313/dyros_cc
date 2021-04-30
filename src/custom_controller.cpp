@@ -1791,8 +1791,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << cp_desired_(0) << "," << cp_measured_(0) << "," << P_angle * 180 / 3.141592 << "," << XD(0) << "," << com_support_current_(0) << "," << damping_x << endl;
-    //MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << YD(0) << "," << com_support_current_(1) << "," << damping_y << endl;
+    MJ_graph << P_angle * 180 / 3.141592 << "," << U_ZMP_y_ssp << "," << U_ZMP_y_ssp_LPF << "," << YD(0) << "," << com_support_current_(1) << endl;
+    
     
 }
 
@@ -1905,7 +1905,7 @@ void CustomController::getPelvTrajectory()
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
   P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  Trunk_trajectory_euler(1) = 0.125*(0.0 - P_angle) + 1.5*P_angle_i;
+  Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 3.0*P_angle_i;
 
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2143,19 +2143,19 @@ void CustomController::GravityCalculate_MJ()
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     { contact_torque_MJ = wbc_.contact_force_redistribution_torque_walking(rd_, Gravity_DSP_, A, B, 1.0, 0); }
   }
-  //MJ_graph << Gravity_SSP_(1) << "," << Gravity_SSP_(7) << endl;
+  
   Gravity_MJ_ = Gravity_DSP_ + Gravity_SSP_ + contact_torque_MJ;
 }
 
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.4;
-    target_y_ = 0.4;
+    target_x_ = 0.5;
+    target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = -0.4;
-    step_length_x_ = 0.08;
+    target_theta_ = 0.0;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2301,12 +2301,13 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
   U_ZMP_x_ssp = - (K_x_ssp(0,0)*X_x_ssp(0) + K_x_ssp(0,1)*preview_x(1)) + XZMP_ref * ff_gain_x_ssp(0,0);
   U_ZMP_y_ssp = - (K_y_ssp(0,0)*X_y_ssp(0) + K_y_ssp(0,1)*preview_y(1)) + YZMP_ref * ff_gain_y_ssp(0,0); 
   
-  U_ZMP_x_ssp_LPF =  1/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp_LPF + (2*M_PI*3.0*del_t)/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp;      
+  U_ZMP_x_ssp_LPF =  1/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp_LPF + (2*M_PI*3.0*del_t)/(1+2*M_PI*3.0*del_t)*U_ZMP_x_ssp;
+  U_ZMP_y_ssp_LPF =  1/(1+2*M_PI*6.0*del_t)*U_ZMP_y_ssp_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*U_ZMP_y_ssp;       
   if(walking_tick_mj == 0)
-  { U_ZMP_x_ssp_LPF = U_ZMP_x_ssp; }
+  { U_ZMP_x_ssp_LPF = U_ZMP_x_ssp; U_ZMP_y_ssp_LPF = U_ZMP_y_ssp; }
 
   damping_x = U_ZMP_x_ssp_LPF ;
-  damping_y = U_ZMP_y_ssp ;
+  damping_y = U_ZMP_y_ssp_LPF ;
 
   if(damping_x > 0.02)  
   { damping_x = 0.02; }
@@ -2315,15 +2316,15 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
   if(damping_y > 0.03) // 로봇 0.03, 시뮬 0.02
   { damping_y = 0.03; }
-  else if(damping_y < - 0.02)
-  { damping_y = -0.02; }
+  else if(damping_y < - 0.03)
+  { damping_y = -0.03; }
   
   // MJ_graph << cp_desired_(1) << "," << cp_measured_(1) << "," << com_float_current_(1) << "," << X_y_ssp(0) << "," << damping_y << endl;  
 }
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
@@ -2442,7 +2443,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   d_hat = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*d_hat + 1/(1+2*M_PI*8.0*del_t)*d_hat_b;
 
   double default_gain = 0.0;
-  double compliant_gain = 0.2;
+  double compliant_gain = 0.0;
   double compliant_tick = 0.1*hz_;
   double gain_temp = 0.0;
   for (int i = 0; i < 12; i ++)
