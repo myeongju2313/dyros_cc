@@ -2,6 +2,11 @@
 #include <tocabi_controller/link.h>
 #include "math_type_define.h"
 
+// pedal
+#include <ros/ros.h>
+#include <dyros_pedal/WalkingCommand.h>
+#include <std_msgs/Float32.h>
+
 class CustomController
 {
 public:
@@ -242,6 +247,23 @@ public:
   Eigen::VectorQd Initial_ref_q_;
   Eigen::VectorQd Initial_ref_q_walk_;
   bool walking_enable_ ;
+
+  //pedal_
+  ros::NodeHandle nh;
+  ros::Subscriber pedal_command;
+  void PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg);
+  Eigen::Vector3d joystick_input;
+  Eigen::Vector3d joystick_input_;
+
+  //// joystick&pedal Footstep
+  void updateInitialStateJoy();
+  void calculateFootStepTotal_MJoy();
+  void calculateFootStepTotal_MJoy_End();
+  void updateNextStepTimeJoy();
+  int joy_index_ = 0;
+  Eigen::MatrixXd foot_step_joy_temp_;
+  bool joy_enable_ = false;
+  bool joy_input_enable_ = false;
 
   Eigen::VectorQd q_mj;
   Eigen::VectorQd q_mj_prev;

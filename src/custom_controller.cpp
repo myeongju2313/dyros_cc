@@ -4,6 +4,7 @@
 CustomController::CustomController(DataContainer &dc, RobotData &rd) : dc_(dc), rd_(rd), wbc_(dc.wbc_)
 {
     ControlVal_.setZero();
+    pedal_command = dc_.nh.subscribe("/tocabi/pedalcommand", 100, &CustomController::PedalCommandCallback, this);
 }
 
 Eigen::VectorQd CustomController::getControl()
@@ -15,12 +16,29 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
     tc = tc_;
 }
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-// ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+void CustomController::PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg){
+
+  if(joy_input_enable_ == true){
+    joystick_input(0) = msg->step_length_x;
+    joystick_input(2) = msg->theta;
+    joystick_input(1) = (joystick_input(0) + 1)/2 + abs(joystick_input(2)) ;
+  }
+  else{
+    joystick_input(1) = - 1.0;
+  }
+
+  if(joystick_input(1) > 0){
+    walking_enable_ = true;
+    walking_end_flag = 1;
+  }
+}
+
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+// ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -99,6 +117,103 @@ void CustomController::computeSlow()
             desired_q_not_compensated_ = ref_q_;           
 
             updateNextStepTime();
+
+            q_prev_MJ_ = rd_.q_;            
+        }        
+      }
+      else
+      {
+        if(walking_end_flag == 0)
+        {
+          cout << "walking finish" << endl;
+          walking_end_flag = 1; initial_flag = 0;        
+        } 
+
+        wbc_.set_contact(rd_, 1, 1);
+        Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
+        for(int i = 0; i < MODEL_DOF; i++)
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i); }
+      }        
+ 
+    }
+    else if (tc.mode == 12)
+    {
+        if(initial_flag == 0)
+        {
+          Joint_gain_set_MJ();
+          walking_enable_ = false;                        
+          ref_q_ = rd_.q_;
+          for(int i = 0; i < 12; i ++)
+          {
+            Initial_ref_q_(i) = ref_q_(i);
+          }
+          initial_flag = 1; 
+          q_prev_MJ_ = rd_.q_;
+          walking_tick_mj = 0;
+          walking_end_flag = 1;
+          joy_input_enable_ = true;
+          cout << "mode = 12 : Pedal Init" << endl;
+        }
+
+        wbc_.set_contact(rd_, 1, 1);  
+        Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
+          
+        for(int i = 0; i < MODEL_DOF; i++)
+        { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; }
+       
+    }
+    else if (tc.mode == 13)
+    {
+      if(walking_enable_ == true)
+      {
+        if(walking_tick_mj == 0)
+        {     
+            parameterSetting();
+            cout <<  "\n\n\n\n" << endl;
+            cout <<  "___________________________ " << endl;
+            cout <<  "\n           Start " << endl;
+            cout << "parameter setting OK" << endl;
+            cout << "mode = 13" << endl;
+        }        
+        updateInitialStateJoy();
+        getRobotState();
+        floatToSupportFootstep();
+
+        if(current_step_num_< total_step_num_)
+        {   
+            getZmpTrajectory();
+            getComTrajectory();            
+            getFootTrajectory();
+            getPelvTrajectory();
+            supportToFloatPattern();
+            computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
+            
+            Compliant_control(q_des);
+            for(int i = 0; i < 12; i ++)
+            {
+              //ref_q_(i) = q_des(i);
+              ref_q_(i) = DOB_IK_output_(i);
+            }            
+            //hip_compensator();
+            GravityCalculate_MJ();
+
+            if(walking_tick_mj < 1.0*hz_)
+            {
+              for(int i = 0; i < 12; i ++)
+              { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
+            }
+
+            CP_compen_MJ();
+            
+            for(int i = 0; i < MODEL_DOF; i++)
+            {
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ;  
+              // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+            }               
+                        
+            desired_q_not_compensated_ = ref_q_;           
+
+            updateNextStepTimeJoy();
 
             q_prev_MJ_ = rd_.q_;            
         }        
@@ -1066,62 +1181,23 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
+    Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
 
-    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
+    Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
 
-    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
-        
-    // Kp(15) = 400.0; Kd(15) = 10.0;
-    // Kp(16) = 800.0; Kd(16) = 10.0;
-    // Kp(17) = 400.0; Kd(17) = 10.0;
-    // Kp(18) = 400.0; Kd(18) = 10.0;
-    // Kp(19) = 250.0; Kd(19) = 2.5;
-    // Kp(20) = 250.0; Kd(20) = 2.0;
-    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
-    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
-   
-    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
-    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
-
-    // Kp(25) = 400.0; Kd(25) = 10.0;
-    // Kp(26) = 800.0; Kd(26) = 10.0;
-    // Kp(27) = 400.0; Kd(27) = 10.0;
-    // Kp(28) = 400.0; Kd(28) = 10.0;
-    // Kp(29) = 250.0; Kd(29) = 2.5;
-    // Kp(30) = 250.0; Kd(30) = 2.0;
-    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
-    
-    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
-    Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
-    Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
-    Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
-
-    Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
-    Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
-    Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
-    Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
-
-    Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
-    Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
-    Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
     Kp(15) = 400.0; Kd(15) = 10.0;
     Kp(16) = 800.0; Kd(16) = 10.0;
@@ -1143,6 +1219,45 @@ void CustomController::Joint_gain_set_MJ()
     Kp(30) = 250.0; Kd(30) = 2.0;
     Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
     Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
+    
+    // Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    // Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
+    // Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
+    // Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
+    // Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    // Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+
+    // Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
+    // Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
+    // Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
+    // Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
+    // Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    // Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+
+    // Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
+    // Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
+    // Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+        
+    // Kp(15) = 400.0; Kd(15) = 10.0;
+    // Kp(16) = 800.0; Kd(16) = 10.0;
+    // Kp(17) = 400.0; Kd(17) = 10.0;
+    // Kp(18) = 400.0; Kd(18) = 10.0;
+    // Kp(19) = 250.0; Kd(19) = 2.5;
+    // Kp(20) = 250.0; Kd(20) = 2.0;
+    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
+   
+    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
+
+    // Kp(25) = 400.0; Kd(25) = 10.0;
+    // Kp(26) = 800.0; Kd(26) = 10.0;
+    // Kp(27) = 400.0; Kd(27) = 10.0;
+    // Kp(28) = 400.0; Kd(28) = 10.0;
+    // Kp(29) = 250.0; Kd(29) = 2.5;
+    // Kp(30) = 250.0; Kd(30) = 2.0;
+    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -2101,15 +2216,15 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
-      Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
+      // Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
+      // Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
-      Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
+      // Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
+      // Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2530,6 +2645,327 @@ void CustomController::CP_compen_MJ()
 
   Tau_CP(5) = -F_L * del_zmp(1); // L roll
   Tau_CP(11) = -F_R * del_zmp(1); // R roll
+}
+void CustomController::updateInitialStateJoy()
+{
+  if(walking_tick_mj == 0)
+  {
+    calculateFootStepTotal_MJoy(); // joystick&pedal Footstep
+    joy_enable_ = true;
+    std::cout << "step_length : " << joystick_input_(0) << " trigger(z) : " << joystick_input_(1) << " theta : " << joystick_input_(2)<< std::endl;
+        
+    pelv_rpy_current_.setZero();
+    pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
+    
+    pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));   
+    
+    pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
+
+    pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
+    //pelv_float_init_.translation()(0) += 0.11;
+    
+    pelv_float_init_.translation()(0) = 0;
+    pelv_float_init_.translation()(1) = 0;
+
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
+    
+    lfoot_float_init_.translation()(0) = 0;
+    lfoot_float_init_.translation()(1) = 0.1225;
+
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
+    
+    rfoot_float_init_.translation()(0) = 0;
+    rfoot_float_init_.translation()(1) = -0.1225;
+
+    com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
+    
+    com_float_init_(0) = 0;
+    com_float_init_(1) = 0;
+
+    if(aa == 0)
+    {
+      lfoot_float_init_.translation()(1) = 0.1025;
+      rfoot_float_init_.translation()(1) = -0.1025;
+      // t_temp_ = 4.0*hz_
+      aa = 1;
+    }
+    cout << "First " << pelv_float_init_.translation()(0) << "," << lfoot_float_init_.translation()(0) << "," << rfoot_float_init_.translation()(0) << "," << pelv_rpy_current_(2)*180/3.141592 << endl;
+    
+    Eigen::Isometry3d ref_frame;
+
+    if(foot_step_(0, 6) == 0)  //right foot support
+    { ref_frame = rfoot_float_init_; }
+    else if(foot_step_(0, 6) == 1)
+    { ref_frame = lfoot_float_init_; }
+         
+    lfoot_support_init_ = DyrosMath::multiplyIsometry3d(DyrosMath::inverseIsometry3d(ref_frame),lfoot_float_init_);
+    rfoot_support_init_ = DyrosMath::multiplyIsometry3d(DyrosMath::inverseIsometry3d(ref_frame),rfoot_float_init_);
+    pelv_support_init_ = DyrosMath::inverseIsometry3d(ref_frame) * pelv_float_init_;
+    com_support_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(ref_frame), com_float_init_);
+
+    pelv_support_euler_init_ = DyrosMath::rot2Euler(pelv_support_init_.linear());
+    rfoot_support_euler_init_ = DyrosMath::rot2Euler(rfoot_support_init_.linear());
+    lfoot_support_euler_init_ = DyrosMath::rot2Euler(lfoot_support_init_.linear());
+     
+    supportfoot_float_init_.setZero();
+    swingfoot_float_init_.setZero();
+     
+    if(foot_step_(0,6) == 1) //left suppport foot
+    {
+      for(int i=0; i<2; i++)
+        supportfoot_float_init_(i) = lfoot_float_init_.translation()(i);
+      for(int i=0; i<3; i++)
+        supportfoot_float_init_(i+3) = DyrosMath::rot2Euler(lfoot_float_init_.linear())(i);
+
+      for(int i=0; i<2; i++)
+        swingfoot_float_init_(i) = rfoot_float_init_.translation()(i);
+      for(int i=0; i<3; i++)
+        swingfoot_float_init_(i+3) = DyrosMath::rot2Euler(rfoot_float_init_.linear())(i);
+
+      supportfoot_float_init_(0) = 0.0;
+      swingfoot_float_init_(0) = 0.0;
+    }
+    else
+    {
+      for(int i=0; i<2; i++)
+        supportfoot_float_init_(i) = rfoot_float_init_.translation()(i);
+      for(int i=0; i<3; i++)
+        supportfoot_float_init_(i+3) = DyrosMath::rot2Euler(rfoot_float_init_.linear())(i);
+
+      for(int i=0; i<2; i++)
+        swingfoot_float_init_(i) = lfoot_float_init_.translation()(i);
+      for(int i=0; i<3; i++)
+        swingfoot_float_init_(i+3) = DyrosMath::rot2Euler(lfoot_float_init_.linear())(i);
+
+      supportfoot_float_init_(0) = 0.0;
+      swingfoot_float_init_(0) = 0.0;
+    }
+
+    pelv_support_start_ = pelv_support_init_;
+    total_step_num_ = foot_step_.col(1).size();
+    
+    xi_ = com_support_init_(0); // preview parameter
+    yi_ = com_support_init_(1);
+    zc_ = com_support_init_(2);
+    
+  }
+  else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
+  { 
+    pelv_rpy_current_.setZero();
+    pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
+
+    pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
+    
+    pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
+
+    pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
+    //pelv_float_init_.translation()(0) += 0.11;
+      
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
+    
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
+    
+    com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
+    
+    Eigen::Isometry3d ref_frame;
+
+    if(foot_step_(current_step_num_, 6) == 0)  //right foot support
+    { ref_frame = rfoot_float_init_; }
+    else if(foot_step_(current_step_num_, 6) == 1)
+    { ref_frame = lfoot_float_init_; }     
+
+    pelv_support_init_ = DyrosMath::inverseIsometry3d(ref_frame) * pelv_float_init_;
+    com_support_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(ref_frame), com_float_init_);
+    pelv_support_euler_init_ = DyrosMath::rot2Euler(pelv_support_init_.linear());
+
+    lfoot_support_init_ = DyrosMath::multiplyIsometry3d(DyrosMath::inverseIsometry3d(ref_frame),lfoot_float_init_);
+    rfoot_support_init_ = DyrosMath::multiplyIsometry3d(DyrosMath::inverseIsometry3d(ref_frame),rfoot_float_init_);
+    rfoot_support_euler_init_ = DyrosMath::rot2Euler(rfoot_support_init_.linear());
+    lfoot_support_euler_init_ = DyrosMath::rot2Euler(lfoot_support_init_.linear());
+      
+  }
+  if(walking_tick_mj == t_start_) 
+  {
+    if(joy_input_enable_ == true){
+      joystick_input_(0) = (joystick_input(0) + 1)/2 ;
+      // joystick_input_(1) = joystick_input(1);
+      joystick_input_(2) = - joystick_input(2);
+      joystick_input_(1) = joystick_input_(0)+ abs(joystick_input_(2));
+    }
+
+    if(joystick_input_(1) > 0){
+      calculateFootStepTotal_MJoy();
+      total_step_num_ = foot_step_.col(1).size();
+      joy_enable_ = true;
+      std::cout << "step_length : " << joystick_input_(0) << " trigger(z) : " << joystick_input_(1) << " theta : " << joystick_input_(2)<< std::endl;
+    }
+    else if(joy_enable_ == true){
+      calculateFootStepTotal_MJoy_End();
+      total_step_num_ = foot_step_.col(1).size();
+      joy_enable_ = false;
+      joy_input_enable_ = false;
+      joystick_input_(1) = -1.0;
+    }
+  }
+}
+
+void CustomController::calculateFootStepTotal_MJoy()
+{
+  double width = 0.1225;
+  double length = 0.10;
+  double theta = 10 * DEG2RAD;
+  double width_buffer = 0.0;
+  double temp;
+  int temp2;
+  int index = 3;
+
+  joy_index_ ++;
+  foot_step_.resize(joy_index_ + index, 7);
+  foot_step_.setZero();
+  foot_step_support_frame_.resize(joy_index_ + index, 7);
+  foot_step_support_frame_.setZero();
+
+  if(walking_tick_mj != 0){
+    // for(int i=0; i<joy_index_ + 2 ; i++){
+    for(int i=0; i<foot_step_joy_temp_.col(1).size(); i++){
+      foot_step_(i,0) = foot_step_joy_temp_(i,0);
+      foot_step_(i,1) = foot_step_joy_temp_(i,1);
+      foot_step_(i,5) = foot_step_joy_temp_(i,5);
+      foot_step_(i,6) = foot_step_joy_temp_(i,6);
+    }
+  }
+
+  foot_step_(1,6) = 0;
+  if(aa == 0) 
+  {
+    width_buffer = 0.01;
+    joystick_input_(0) = 0;
+    joystick_input_(2) = 0;
+  }
+
+  if(joy_index_ < 3)
+  {
+    temp = 1;
+    temp2 = 0;
+
+    foot_step_(0,5) = temp2 * joystick_input_(2) * theta; //0.0;
+    foot_step_(0,0) =    (width - width_buffer) * sin(foot_step_(0,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(0,5))); //0.0;
+    foot_step_(0,1) =  - (width - width_buffer) * cos(foot_step_(0,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(0,5)));
+    foot_step_(0,6) = 1.0;
+    temp2++;
+
+    foot_step_(1,5) = temp2 * joystick_input_(2) * theta; //0.0;
+    foot_step_(1,0) = - width * sin(foot_step_(1,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(1,5)));
+    foot_step_(1,1) =   width * cos(foot_step_(1,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(1,5)));
+    foot_step_(1,6) = 0.0;
+    temp2++;
+
+    foot_step_(2,5) = temp2 * joystick_input_(2) * theta;
+    foot_step_(2,0) =   width * sin(foot_step_(2,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(2,5)));
+    foot_step_(2,1) = - width * cos(foot_step_(2,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(2,5)));
+    foot_step_(2,6) = 1.0;
+    temp2++;
+
+    foot_step_(3,5) = temp2 * joystick_input_(2) * theta;
+    foot_step_(3,0) = - width * sin(foot_step_(3,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(3,5)));
+    foot_step_(3,1) =   width * cos(foot_step_(3,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(3,5)));
+    foot_step_(3,6) = 0.0;
+  }
+  else
+  {
+    if(foot_step_(joy_index_,6) ==1) temp = 1;
+    else if(foot_step_(joy_index_,6) ==0) temp = -1;
+
+    for(int i=-1;i<index;i++){
+    temp *= -1;
+
+    foot_step_(joy_index_ + i,5) = foot_step_(joy_index_ + i -1 ,5) + joystick_input_(2)*theta;
+    foot_step_(joy_index_ + i,0) = foot_step_(joy_index_ + i -1 ,0) + temp * width * (sin(foot_step_(joy_index_ + i -1,5)) + sin(foot_step_(joy_index_ + i,5))) + joystick_input_(0) * length * cos(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,1) = foot_step_(joy_index_ + i -1 ,1) - temp * width * (cos(foot_step_(joy_index_ + i -1,5)) + cos(foot_step_(joy_index_ + i,5))) + joystick_input_(0) * length * sin(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,6) = 0.5 + 0.5*temp;
+    }
+  }
+
+  foot_step_joy_temp_.resize(joy_index_ + index, 7);
+  foot_step_joy_temp_.setZero();
+  foot_step_joy_temp_ = foot_step_;
+
+}
+void CustomController::calculateFootStepTotal_MJoy_End()
+{
+  double width = 0.1225;
+  double length = 0.10;
+  double theta = 10 * DEG2RAD;
+  double width_buffer = 0.0;
+  double temp;
+  int index = 1;
+
+  joy_index_ ++;
+  foot_step_.resize(joy_index_ + index, 7);
+  foot_step_.setZero();
+  foot_step_support_frame_.resize(joy_index_ + index, 7);
+  foot_step_support_frame_.setZero();
+
+  if(walking_tick_mj != 0){    
+    for(int i=0; i<joy_index_ + 1 ; i++)
+    {
+      foot_step_(i,0) = foot_step_joy_temp_(i,0);
+      foot_step_(i,1) = foot_step_joy_temp_(i,1);
+      foot_step_(i,5) = foot_step_joy_temp_(i,5);
+      foot_step_(i,6) = foot_step_joy_temp_(i,6);
+    }
+  }
+
+  if(foot_step_(joy_index_,6) ==1) temp = 1;
+  else if(foot_step_(joy_index_,6) ==0) temp = -1;
+
+  for(int i=-1;i<index;i++){
+    temp *= -1;
+    foot_step_(joy_index_ + i,5) = foot_step_(joy_index_ + i -1 ,5);
+    foot_step_(joy_index_ + i,0) = foot_step_(joy_index_ + i -1 ,0) + temp * 2* width*sin(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,1) = foot_step_(joy_index_ + i -1 ,1) - temp * 2* width*cos(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,6) = 0.5 + 0.5*temp;
+  }
+
+  cout << "-----footstep-position-----" << endl;
+  for(int i=0; i<joy_index_ + index ; i++){
+    cout << i << " : " << foot_step_(i,6) << " : " << foot_step_(i,5) <<  " : " <<foot_step_(i,0) << " , " << foot_step_(i,1)<<endl;
+  }
+  cout << "-----footstep-planning-----" << endl;
+}
+void CustomController::updateNextStepTimeJoy()
+{
+  if(walking_tick_mj == t_last_)
+  {
+    if(current_step_num_ != total_step_num_-1)
+    {
+      t_start_ = t_last_ + 1 ;
+      t_start_real_ = t_start_ + t_rest_init_;
+      t_last_ = t_start_ + t_total_ -1;
+      current_step_num_ ++;
+    }
+  }
+
+  walking_tick_mj ++;
+
+  if(current_step_num_ == total_step_num_-1 && walking_tick_mj >= t_last_ + t_total_ + 1)
+  {
+    walking_enable_ = false;
+    walking_tick_mj = 0;
+    joy_index_ = 0;
+    ref_q_ = rd_.q_;
+      for(int i = 0; i < 12; i ++)
+      {
+        Initial_ref_q_(i) = ref_q_(i);
+      }
+    cout <<  "            end" << endl;
+    cout <<  "___________________________" << endl;
+    joy_input_enable_ = true;
+  }
 }
 
 void CustomController::computePlanner()
