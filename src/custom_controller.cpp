@@ -392,6 +392,7 @@ void CustomController::getRobotState()
   pelv_rpy_current_.setZero();
   pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
 
+  R_angle = pelv_rpy_current_(0);
   P_angle = pelv_rpy_current_(1); 
   pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
   
@@ -1906,9 +1907,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-    MJ_graph << P_angle * 180 / 3.141592 << "," << U_ZMP_y_ssp << "," << U_ZMP_y_ssp_LPF << "," << YD(0) << "," << com_support_current_(1) << endl;
-    
-    
+        
 }
 
 // void CustomController::SC_err_compen(double x_des, double y_des)
@@ -2019,9 +2018,22 @@ void CustomController::getPelvTrajectory()
   else
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
-  P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 2.0*P_angle_i;
+  // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
+  // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 10.0*P_angle_i;
+  if(walking_tick_mj == 0)
+  { P_angle_input = 0; R_angle_input = 0; }
+  
+  P_angle_input_dot = 2.0*(0.0 - P_angle) - 0.01*P_angle_input;
+  R_angle_input_dot = 2.0*(0.0 - R_angle) - 0.01*R_angle_input;
+  
+  P_angle_input = P_angle_input + P_angle_input_dot*del_t;
+  R_angle_input = R_angle_input + R_angle_input_dot*del_t;
+  
+  Trunk_trajectory_euler(0) = R_angle_input;
+  Trunk_trajectory_euler(1) = P_angle_input;
 
+  MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
+    
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
 }
@@ -2265,7 +2277,7 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
+    target_x_ = 4.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
