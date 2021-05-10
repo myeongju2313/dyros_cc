@@ -798,7 +798,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 6; //
     dlength = 0;
   }
 
@@ -2019,16 +2019,21 @@ void CustomController::getPelvTrajectory()
   { Trunk_trajectory_euler(2) = z_rot/2.0; } 
 
   // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
-  // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 10.0*P_angle_i;
+  // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 1.5*P_angle_i;
   if(walking_tick_mj == 0)
   { P_angle_input = 0; R_angle_input = 0; }
   
-  P_angle_input_dot = 2.0*(0.0 - P_angle) - 0.01*P_angle_input;
-  R_angle_input_dot = 2.0*(0.0 - R_angle) - 0.01*R_angle_input;
+  P_angle_input_dot = 1.5*(0.0 - P_angle) - 0.01*P_angle_input;
+  R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
   
   P_angle_input = P_angle_input + P_angle_input_dot*del_t;
   R_angle_input = R_angle_input + R_angle_input_dot*del_t;
   
+  if(R_angle_input > 0.0262)
+  { R_angle_input = 0.0262; }
+  else if(R_angle_input < -0.0262)
+  { R_angle_input = -0.0262; }
+
   Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
@@ -2277,12 +2282,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 4.0;
-    target_y_ = 0.0;
+    target_x_ = 0.5;
+    target_y_ = 0.5;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
-    step_length_x_ = 0.1;
+    target_theta_ = -0.5;
+    step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2451,7 +2456,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.4*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
