@@ -359,11 +359,13 @@ void CustomController::updateInitialState()
 
     pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
     //pelv_float_init_.translation()(0) += 0.11;
-      
-    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+
+    lfoot_float_init_.setIdentity();  
+    //lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
     lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
     
-    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.setIdentity();
+    //rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
     rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
     
     com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -399,12 +401,13 @@ void CustomController::getRobotState()
   pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
-  //pelv_float_current_.translation()(0) += 0.11;
-     
-  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+
+  lfoot_float_current_.setIdentity();   
+  //lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
   
-  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+  rfoot_float_current_.setIdentity();
+  //rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
   
   com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -426,27 +429,12 @@ void CustomController::getRobotState()
   else if(foot_step_(current_step_num_, 6) == 1)
   { supportfoot_float_current_ = lfoot_float_current_; }
   
-  if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
-  { 
-    if(foot_step_(current_step_num_, 6) == 0)
-    { com_support_current_dot = (DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(lfoot_float_current_), com_float_current_LPF) - com_support_current_LPF)*hz_; }
-    else if(foot_step_(current_step_num_, 6) == 1)
-    { com_support_current_dot = (DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(rfoot_float_current_), com_float_current_LPF) - com_support_current_LPF)*hz_; }
-  }
-
   pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;   
   lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * lfoot_float_current_;
   rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * rfoot_float_current_;
   
-  com_support_current_prev = com_support_current_LPF;
-  com_support_current_ =  DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_);
-  
-  if(walking_tick_mj == 0)
-  { com_support_current_prev = com_support_current_; }
+  com_support_current_ =  DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_);  
   com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF);
-
-  if(walking_tick_mj != t_start_)
-  { com_support_current_dot = (com_support_current_LPF - com_support_current_prev)*hz_; } 
 
   l_ft_ = rd_.ContactForce_FT_raw.segment(0, 6);
   r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);    
@@ -1186,15 +1174,15 @@ void CustomController::Joint_gain_set_MJ()
     // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
     // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
     // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    // Kp(4) = 1800.0; Kd(4) = 80.0;// Left Ankle pitch
-    // Kp(5) = 1800.0; Kd(5) = 80.0;// Left Ankle roll
+    // Kp(4) = 900.0; Kd(4) = 40.0;// Left Ankle pitch
+    // Kp(5) = 900.0; Kd(5) = 40.0;// Left Ankle roll
 
     // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
     // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
     // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
     // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    // Kp(10) = 1800.0; Kd(10) = 80.0;// Right Ankle pitch
-    // Kp(11) = 1800.0; Kd(11) = 80.0;// Right Ankle roll
+    // Kp(10) = 900.0; Kd(10) = 40.0;// Right Ankle pitch
+    // Kp(11) = 900.0; Kd(11) = 40.0;// Right Ankle roll
 
     // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
     // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
@@ -2282,11 +2270,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.5;
-    target_y_ = 0.5;
+    target_x_ = 0.0;
+    target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = -0.5;
+    target_theta_ = 0.0;
     step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
