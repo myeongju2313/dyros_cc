@@ -786,7 +786,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 6; //
+    middle_total_step_number = 10; //
     dlength = 0;
   }
 
@@ -1213,15 +1213,15 @@ void CustomController::Joint_gain_set_MJ()
     Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
     Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
     Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+    Kp(4) = 1600.0; Kd(4) = 15.0;// Left Ankle pitch /5000 / 30
+    Kp(5) = 1600.0; Kd(5) = 15.0;// Left Ankle roll /5000 / 30
 
     Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
     Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
     Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
     Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+    Kp(10) = 1600.0; Kd(10) = 15.0;// Right Ankle pitch
+    Kp(11) = 1600.0; Kd(11) = 15.0;// Right Ankle roll
 
     Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
     Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
@@ -2444,7 +2444,7 @@ void CustomController::CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref)
 
 void CustomController::hip_compensator()
 {  
-  double left_hip_roll = -0.3*DEG2RAD, right_hip_roll = -0.3*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
+  double left_hip_roll = -0.4*DEG2RAD, right_hip_roll = -0.4*DEG2RAD, left_hip_roll_first = -0.50*DEG2RAD, right_hip_roll_first = -0.50*DEG2RAD, //실험, 제자리 0.6, 0.4
   left_hip_pitch = 0.4*DEG2RAD, right_hip_pitch = 0.4*DEG2RAD, left_hip_pitch_first = 0.40*DEG2RAD, right_hip_pitch_first = 0.40*DEG2RAD, // 실험 , 제자리 0.75deg
   left_ank_pitch = 0.0*DEG2RAD, right_ank_pitch = 0.0*DEG2RAD, left_ank_pitch_first = 0.0*DEG2RAD, right_ank_pitch_first = 0.0*DEG2RAD,
       left_hip_roll_temp = 0.0, right_hip_roll_temp = 0.0, left_hip_pitch_temp = 0.0, right_hip_pitch_temp = 0.0, left_ank_pitch_temp = 0.0, right_ank_pitch_temp = 0.0, temp_time = 0.05*hz_;
