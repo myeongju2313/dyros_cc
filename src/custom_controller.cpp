@@ -421,12 +421,12 @@ void CustomController::getRobotState()
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
 
-  //lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
-  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
+  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+  //lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
   
-  //rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
-  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
+  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+  //rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
    
   com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -1233,15 +1233,15 @@ void CustomController::Joint_gain_set_MJ()
     Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
     Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
     Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 1600.0; Kd(4) = 15.0;// Left Ankle pitch /5000 / 30
-    Kp(5) = 1600.0; Kd(5) = 15.0;// Left Ankle roll /5000 / 30
+    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
 
     Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
     Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
     Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
     Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 1600.0; Kd(10) = 15.0;// Right Ankle pitch
-    Kp(11) = 1600.0; Kd(11) = 15.0;// Right Ankle roll
+    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
 
     Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
     Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
@@ -2015,7 +2015,7 @@ void CustomController::getPelvTrajectory()
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.6*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
-  MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
+  // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   Eigen::Vector3d Trunk_trajectory_euler;
   Trunk_trajectory_euler.setZero();
 
@@ -2042,10 +2042,15 @@ void CustomController::getPelvTrajectory()
   else if(R_angle_input < -0.0262)
   { R_angle_input = -0.0262; }
 
+  if(P_angle_input > 0.0262)
+  { P_angle_input = 0.0262; }
+  else if(P_angle_input < -0.0262)
+  { P_angle_input = -0.0262; }
+
   Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
-  //MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
+  MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
     
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2290,11 +2295,11 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 1.0;
-    target_y_ = 1.0;
+    target_x_ = 0.45;
+    target_y_ = 0.45;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
+    target_theta_ = -0.5;
     step_length_x_ = 0.08;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
@@ -2841,7 +2846,7 @@ void CustomController::updateInitialStateJoy()
 void CustomController::calculateFootStepTotal_MJoy()
 {
   double width = 0.1225;
-  double length = 0.10;
+  double length = 0.09;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;
@@ -2923,7 +2928,7 @@ void CustomController::calculateFootStepTotal_MJoy()
 void CustomController::calculateFootStepTotal_MJoy_End()
 {
   double width = 0.1225;
-  double length = 0.10;
+  double length = 0.09;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;
