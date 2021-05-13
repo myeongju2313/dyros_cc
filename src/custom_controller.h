@@ -116,7 +116,13 @@ public:
   Eigen::Vector3d com_float_current_dot_LPF;
 
   Eigen::Vector3d pelv_rpy_current_;
+  Eigen::Vector3d rfoot_rpy_current_;
+  Eigen::Vector3d lfoot_rpy_current_;
   Eigen::Isometry3d pelv_yaw_rot_current_from_global_;
+  Eigen::Isometry3d rfoot_roll_rot_;
+  Eigen::Isometry3d lfoot_roll_rot_;
+  Eigen::Isometry3d rfoot_pitch_rot_;
+  Eigen::Isometry3d lfoot_pitch_rot_;
 
   Eigen::Isometry3d pelv_float_current_;
   Eigen::Isometry3d lfoot_float_current_;

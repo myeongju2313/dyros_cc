@@ -348,24 +348,33 @@ void CustomController::updateInitialState()
     zc_ = com_support_init_(2);
     
   }
-  else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
+  else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change 
   { 
     pelv_rpy_current_.setZero();
     pelv_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Pelvis].Rotm); //ZYX multiply
 
     pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
     
+    rfoot_rpy_current_.setZero();
+    lfoot_rpy_current_.setZero();
+    rfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Right_Foot].Rotm);  
+    lfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Left_Foot].Rotm);
+
+    rfoot_roll_rot_ = DyrosMath::rotateWithX(rfoot_rpy_current_(0));
+    lfoot_roll_rot_ = DyrosMath::rotateWithX(lfoot_rpy_current_(0));
+    rfoot_pitch_rot_ = DyrosMath::rotateWithY(rfoot_rpy_current_(1));
+    lfoot_pitch_rot_ = DyrosMath::rotateWithY(lfoot_rpy_current_(1));
+    
     pelv_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
     pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
-    //pelv_float_init_.translation()(0) += 0.11;
-
-    lfoot_float_init_.setIdentity();  
-    //lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    //lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
     lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
     
-    rfoot_float_init_.setIdentity();
-    //rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    //rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
     rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
     
     com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -397,19 +406,29 @@ void CustomController::getRobotState()
   R_angle = pelv_rpy_current_(0);
   P_angle = pelv_rpy_current_(1); 
   pelv_yaw_rot_current_from_global_ = DyrosMath::rotateWithZ(pelv_rpy_current_(2));
-  
+    
+  rfoot_rpy_current_.setZero();
+  lfoot_rpy_current_.setZero();
+  rfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Right_Foot].Rotm);  
+  lfoot_rpy_current_ = DyrosMath::rot2Euler(rd_.link_[Left_Foot].Rotm);
+
+  rfoot_roll_rot_ = DyrosMath::rotateWithX(rfoot_rpy_current_(0));
+  lfoot_roll_rot_ = DyrosMath::rotateWithX(lfoot_rpy_current_(0));
+  rfoot_pitch_rot_ = DyrosMath::rotateWithY(rfoot_rpy_current_(1));
+  lfoot_pitch_rot_ = DyrosMath::rotateWithY(lfoot_rpy_current_(1));
+
   pelv_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Pelvis].Rotm;
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
 
-  lfoot_float_current_.setIdentity();   
   //lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
   
-  rfoot_float_current_.setIdentity();
   //rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
-  
+   
   com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
   com_float_current_dot = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].v); 
   
@@ -432,7 +451,8 @@ void CustomController::getRobotState()
   pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;   
   lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * lfoot_float_current_;
   rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * rfoot_float_current_;
-  
+    
+  //cout << "L : " << lfoot_float_current_.linear() << "\n" <<  "R : " << rfoot_float_current_.linear() << endl; 
   com_support_current_ =  DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_);  
   com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF);
 
@@ -1995,7 +2015,7 @@ void CustomController::getPelvTrajectory()
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.6*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
   pelv_trajectory_support_.translation()(2) = com_desired_(2);
-       
+  MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   Eigen::Vector3d Trunk_trajectory_euler;
   Trunk_trajectory_euler.setZero();
 
@@ -2025,7 +2045,7 @@ void CustomController::getPelvTrajectory()
   Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
-  MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
+  //MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
     
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2270,8 +2290,8 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
-    target_y_ = 0.0;
+    target_x_ = 1.0;
+    target_y_ = 1.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
