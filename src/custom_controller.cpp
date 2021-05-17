@@ -19,9 +19,11 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
 void CustomController::PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg){
 
   if(joy_input_enable_ == true){
-    joystick_input(0) = msg->step_length_x;
+    joystick_input(0) = msg->step_length_x; //FW
     joystick_input(2) = msg->theta;
-    joystick_input(1) = (joystick_input(0) + 1)/2 + abs(joystick_input(2)) ;
+    joystick_input(3) = msg->z; //BW
+    joystick_input(1) = (joystick_input(0) + 1)/2 + abs(joystick_input(2)) + (joystick_input(3) + 1)/2;
+    
   }
   else{
     joystick_input(1) = - 1.0;
@@ -2050,7 +2052,7 @@ void CustomController::getPelvTrajectory()
   Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
-  MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
+  // MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
     
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
@@ -2821,10 +2823,11 @@ void CustomController::updateInitialStateJoy()
   if(walking_tick_mj == t_start_) 
   {
     if(joy_input_enable_ == true){
-      joystick_input_(0) = (joystick_input(0) + 1)/2 ;
+      joystick_input_(0) = (joystick_input(0) + 1)/2 ; //FW
+      joystick_input_(3) = (joystick_input(3) + 1)/2 ; //BW
       // joystick_input_(1) = joystick_input(1);
       joystick_input_(2) = - joystick_input(2);
-      joystick_input_(1) = joystick_input_(0)+ abs(joystick_input_(2));
+      joystick_input_(1) = joystick_input_(0)+ abs(joystick_input_(2)) + joystick_input_(3);
     }
 
     if(joystick_input_(1) > 0){
@@ -2846,12 +2849,15 @@ void CustomController::updateInitialStateJoy()
 void CustomController::calculateFootStepTotal_MJoy()
 {
   double width = 0.1225;
-  double length = 0.09;
+  double length  = 0.09;
+  double lengthb = 0.07;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;
   int temp2;
   int index = 3;
+
+  double length_total = joystick_input_(0) * length - joystick_input_(3) * lengthb;
 
   joy_index_ ++;
   foot_step_.resize(joy_index_ + index, 7);
@@ -2875,6 +2881,7 @@ void CustomController::calculateFootStepTotal_MJoy()
     width_buffer = 0.01;
     joystick_input_(0) = 0;
     joystick_input_(2) = 0;
+    joystick_input_(3) = 0;
   }
 
   if(joy_index_ < 3)
@@ -2883,26 +2890,26 @@ void CustomController::calculateFootStepTotal_MJoy()
     temp2 = 0;
 
     foot_step_(0,5) = temp2 * joystick_input_(2) * theta; //0.0;
-    foot_step_(0,0) =    (width - width_buffer) * sin(foot_step_(0,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(0,5))); //0.0;
-    foot_step_(0,1) =  - (width - width_buffer) * cos(foot_step_(0,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(0,5)));
+    foot_step_(0,0) =    (width - width_buffer) * sin(foot_step_(0,5)) + temp2 * length_total * cos(foot_step_(foot_step_(0,5))); //0.0;
+    foot_step_(0,1) =  - (width - width_buffer) * cos(foot_step_(0,5)) + temp2 * length_total * sin(foot_step_(foot_step_(0,5)));
     foot_step_(0,6) = 1.0;
     temp2++;
 
     foot_step_(1,5) = temp2 * joystick_input_(2) * theta; //0.0;
-    foot_step_(1,0) = - width * sin(foot_step_(1,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(1,5)));
-    foot_step_(1,1) =   width * cos(foot_step_(1,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(1,5)));
+    foot_step_(1,0) = - width * sin(foot_step_(1,5)) + temp2 * length_total * cos(foot_step_(foot_step_(1,5)));
+    foot_step_(1,1) =   width * cos(foot_step_(1,5)) + temp2 * length_total * sin(foot_step_(foot_step_(1,5)));
     foot_step_(1,6) = 0.0;
     temp2++;
 
     foot_step_(2,5) = temp2 * joystick_input_(2) * theta;
-    foot_step_(2,0) =   width * sin(foot_step_(2,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(2,5)));
-    foot_step_(2,1) = - width * cos(foot_step_(2,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(2,5)));
+    foot_step_(2,0) =   width * sin(foot_step_(2,5)) + temp2 * length_total * cos(foot_step_(foot_step_(2,5)));
+    foot_step_(2,1) = - width * cos(foot_step_(2,5)) + temp2 * length_total * sin(foot_step_(foot_step_(2,5)));
     foot_step_(2,6) = 1.0;
     temp2++;
 
     foot_step_(3,5) = temp2 * joystick_input_(2) * theta;
-    foot_step_(3,0) = - width * sin(foot_step_(3,5)) + temp2 * joystick_input_(0) * length * cos(foot_step_(foot_step_(3,5)));
-    foot_step_(3,1) =   width * cos(foot_step_(3,5)) + temp2 * joystick_input_(0) * length * sin(foot_step_(foot_step_(3,5)));
+    foot_step_(3,0) = - width * sin(foot_step_(3,5)) + temp2 * length_total * cos(foot_step_(foot_step_(3,5)));
+    foot_step_(3,1) =   width * cos(foot_step_(3,5)) + temp2 * length_total * sin(foot_step_(foot_step_(3,5)));
     foot_step_(3,6) = 0.0;
   }
   else
@@ -2914,8 +2921,8 @@ void CustomController::calculateFootStepTotal_MJoy()
     temp *= -1;
 
     foot_step_(joy_index_ + i,5) = foot_step_(joy_index_ + i -1 ,5) + joystick_input_(2)*theta;
-    foot_step_(joy_index_ + i,0) = foot_step_(joy_index_ + i -1 ,0) + temp * width * (sin(foot_step_(joy_index_ + i -1,5)) + sin(foot_step_(joy_index_ + i,5))) + joystick_input_(0) * length * cos(foot_step_(joy_index_ + i,5));
-    foot_step_(joy_index_ + i,1) = foot_step_(joy_index_ + i -1 ,1) - temp * width * (cos(foot_step_(joy_index_ + i -1,5)) + cos(foot_step_(joy_index_ + i,5))) + joystick_input_(0) * length * sin(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,0) = foot_step_(joy_index_ + i -1 ,0) + temp * width * (sin(foot_step_(joy_index_ + i -1,5)) + sin(foot_step_(joy_index_ + i,5))) + length_total * cos(foot_step_(joy_index_ + i,5));
+    foot_step_(joy_index_ + i,1) = foot_step_(joy_index_ + i -1 ,1) - temp * width * (cos(foot_step_(joy_index_ + i -1,5)) + cos(foot_step_(joy_index_ + i,5))) + length_total * sin(foot_step_(joy_index_ + i,5));
     foot_step_(joy_index_ + i,6) = 0.5 + 0.5*temp;
     }
   }
@@ -2928,7 +2935,7 @@ void CustomController::calculateFootStepTotal_MJoy()
 void CustomController::calculateFootStepTotal_MJoy_End()
 {
   double width = 0.1225;
-  double length = 0.09;
+  double length = 0.10;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;

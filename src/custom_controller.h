@@ -263,8 +263,8 @@ public:
   ros::NodeHandle nh;
   ros::Subscriber pedal_command;
   void PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg);
-  Eigen::Vector3d joystick_input;
-  Eigen::Vector3d joystick_input_;
+  Eigen::Vector4d joystick_input;
+  Eigen::Vector4d joystick_input_;
 
   //// joystick&pedal Footstep
   void updateInitialStateJoy();
