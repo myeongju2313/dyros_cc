@@ -1275,8 +1275,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.0175;
-  rfoot_zmp_offset_ = 0.0175;
+  lfoot_zmp_offset_ = -0.02;
+  rfoot_zmp_offset_ = 0.02;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -2034,22 +2034,22 @@ void CustomController::getPelvTrajectory()
   { P_angle_input = 0; R_angle_input = 0; }
   
   P_angle_input_dot = 1.5*(0.0 - P_angle) - 0.01*P_angle_input;
-  R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
+  // R_angle_input_dot = 1.0*(0.0 - R_angle) - 0.005*R_angle_input;
   
   P_angle_input = P_angle_input + P_angle_input_dot*del_t;
-  R_angle_input = R_angle_input + R_angle_input_dot*del_t;
+  // R_angle_input = R_angle_input + R_angle_input_dot*del_t;
   
-  if(R_angle_input > 0.0262)
-  { R_angle_input = 0.0262; }
-  else if(R_angle_input < -0.0262)
-  { R_angle_input = -0.0262; }
+  // if(R_angle_input > 0.0262)
+  // { R_angle_input = 0.0262; }
+  // else if(R_angle_input < -0.0262)
+  // { R_angle_input = -0.0262; }
 
   if(P_angle_input > 0.0262)
-  { P_angle_input = 0.0262; }
+  { P_angle_input = 0.0262; cout << "a" << endl; }
   else if(P_angle_input < -0.0262)
-  { P_angle_input = -0.0262; }
+  { P_angle_input = -0.0262; cout << "a" << endl;}
 
-  Trunk_trajectory_euler(0) = R_angle_input;
+  //Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
   // MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
