@@ -2030,7 +2030,7 @@ void CustomController::getPelvTrajectory()
 
   // P_angle_i = P_angle_i + (0 - P_angle)*del_t;
   // Trunk_trajectory_euler(1) = 0.05*(0.0 - P_angle) + 1.5*P_angle_i;
-  if(walking_tick_mj == 0)
+  if(aa == 0 && walking_tick_mj == 0)
   { P_angle_input = 0; R_angle_input = 0; }
   
   P_angle_input_dot = 1.5*(0.0 - P_angle) - 0.01*P_angle_input;
@@ -2047,12 +2047,12 @@ void CustomController::getPelvTrajectory()
   if(P_angle_input > 0.0262)
   { P_angle_input = 0.0262; cout << "a" << endl; }
   else if(P_angle_input < -0.0262)
-  { P_angle_input = -0.0262; cout << "a" << endl;}
+  { P_angle_input = -0.0262; cout << "b" << endl;}
 
   //Trunk_trajectory_euler(0) = R_angle_input;
   Trunk_trajectory_euler(1) = P_angle_input;
 
-  // MJ_graph << R_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(0) << "," << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
+  //MJ_graph << P_angle * 180 / 3.141592 << "," << Trunk_trajectory_euler(1) << endl;
     
   pelv_trajectory_support_.linear() = DyrosMath::rotateWithZ(Trunk_trajectory_euler(2))*DyrosMath::rotateWithY(Trunk_trajectory_euler(1))*DyrosMath::rotateWithX(Trunk_trajectory_euler(0));
      
