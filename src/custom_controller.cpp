@@ -35,12 +35,12 @@ void CustomController::PedalCommandCallback(const dyros_pedal::WalkingCommandCon
   }
 }
 
-ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
-ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
-// ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
-// ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-// ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+// ofstream MJ_graph("/home/dyros/data/myeongju/MJ_graph.txt");
+// ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
+// ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
+ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
+ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
 
 void CustomController::computeSlow()
 {
@@ -99,7 +99,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            hip_compensator();
+            // hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -196,7 +196,7 @@ void CustomController::computeSlow()
               //ref_q_(i) = q_des(i);
               ref_q_(i) = DOB_IK_output_(i);
             }            
-            hip_compensator();
+            // hip_compensator();
             GravityCalculate_MJ();
 
             if(walking_tick_mj < 1.0*hz_)
@@ -1192,62 +1192,23 @@ void CustomController::floatToSupportFootstep()
 void CustomController::Joint_gain_set_MJ()
 {
     //simulation gains
-    // Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
-    // Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
-    // Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
-    // Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    // Kp(4) = 900.0; Kd(4) = 40.0;// Left Ankle pitch
-    // Kp(5) = 900.0; Kd(5) = 40.0;// Left Ankle roll
+    Kp(0) = 1800.0; Kd(0) = 70.0; // Left Hip yaw
+    Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
+    Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
+    Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
+    Kp(4) = 900.0; Kd(4) = 40.0;// Left Ankle pitch
+    Kp(5) = 900.0; Kd(5) = 40.0;// Left Ankle roll
 
-    // Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
-    // Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
-    // Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
-    // Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    // Kp(10) = 900.0; Kd(10) = 40.0;// Right Ankle pitch
-    // Kp(11) = 900.0; Kd(11) = 40.0;// Right Ankle roll
+    Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
+    Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
+    Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
+    Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
+    Kp(10) = 900.0; Kd(10) = 40.0;// Right Ankle pitch
+    Kp(11) = 900.0; Kd(11) = 40.0;// Right Ankle roll
 
-    // Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
-    // Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
-    // Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
-        
-    // Kp(15) = 400.0; Kd(15) = 10.0;
-    // Kp(16) = 800.0; Kd(16) = 10.0;
-    // Kp(17) = 400.0; Kd(17) = 10.0;
-    // Kp(18) = 400.0; Kd(18) = 10.0;
-    // Kp(19) = 250.0; Kd(19) = 2.5;
-    // Kp(20) = 250.0; Kd(20) = 2.0;
-    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
-    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
-   
-    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
-    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
-
-    // Kp(25) = 400.0; Kd(25) = 10.0;
-    // Kp(26) = 800.0; Kd(26) = 10.0;
-    // Kp(27) = 400.0; Kd(27) = 10.0;
-    // Kp(28) = 400.0; Kd(28) = 10.0;
-    // Kp(29) = 250.0; Kd(29) = 2.5;
-    // Kp(30) = 250.0; Kd(30) = 2.0;
-    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
-    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
-    
-    Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
-    Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
-    Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
-    Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
-    Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
-    Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
-
-    Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
-    Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
-    Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
-    Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
-    Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
-    Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
-
-    Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
-    Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
-    Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+    Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
+    Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
+    Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
     Kp(15) = 400.0; Kd(15) = 10.0;
     Kp(16) = 800.0; Kd(16) = 10.0;
@@ -1269,6 +1230,45 @@ void CustomController::Joint_gain_set_MJ()
     Kp(30) = 250.0; Kd(30) = 2.0;
     Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
     Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
+    
+    // Kp(0) = 2000.0; Kd(0) = 15.0; // Left Hip yaw
+    // Kp(1) = 5000.0; Kd(1) = 50.0;// Left Hip roll
+    // Kp(2) = 4000.0; Kd(2) = 20.0;// Left Hip pitch
+    // Kp(3) = 3700.0; Kd(3) = 25.0;// Left Knee pitch
+    // Kp(4) = 5000.0; Kd(4) = 30.0;// Left Ankle pitch /5000 / 30
+    // Kp(5) = 5000.0; Kd(5) = 30.0;// Left Ankle roll /5000 / 30
+
+    // Kp(6) = 2000.0; Kd(6) = 15.0;// Right Hip yaw
+    // Kp(7) = 5000.0; Kd(7) = 50.0;// Right Hip roll
+    // Kp(8) = 4000.0; Kd(8) = 20.0;// Right Hip pitch
+    // Kp(9) = 3700.0; Kd(9) = 25.0;// Right Knee pitch
+    // Kp(10) = 5000.0; Kd(10) = 30.0;// Right Ankle pitch
+    // Kp(11) = 5000.0; Kd(11) = 30.0;// Right Ankle roll
+
+    // Kp(12) = 6000.0; Kd(12) = 200.0;// Waist yaw
+    // Kp(13) = 10000.0; Kd(13) = 100.0;// Waist pitch
+    // Kp(14) = 10000.0; Kd(14) = 100.0;// Waist roll
+        
+    // Kp(15) = 400.0; Kd(15) = 10.0;
+    // Kp(16) = 800.0; Kd(16) = 10.0;
+    // Kp(17) = 400.0; Kd(17) = 10.0;
+    // Kp(18) = 400.0; Kd(18) = 10.0;
+    // Kp(19) = 250.0; Kd(19) = 2.5;
+    // Kp(20) = 250.0; Kd(20) = 2.0;
+    // Kp(21) = 50.0; Kd(21) = 2.0; // Left Wrist
+    // Kp(22) = 50.0; Kd(22) = 2.0; // Left Wrist
+   
+    // Kp(23) = 50.0; Kd(23) = 2.0; // Neck
+    // Kp(24) = 50.0; Kd(24) = 2.0; // Neck
+
+    // Kp(25) = 400.0; Kd(25) = 10.0;
+    // Kp(26) = 800.0; Kd(26) = 10.0;
+    // Kp(27) = 400.0; Kd(27) = 10.0;
+    // Kp(28) = 400.0; Kd(28) = 10.0;
+    // Kp(29) = 250.0; Kd(29) = 2.5;
+    // Kp(30) = 250.0; Kd(30) = 2.0;
+    // Kp(31) = 50.0; Kd(31) = 2.0; // Right Wrist
+    // Kp(32) = 50.0; Kd(32) = 2.0; // Right Wrist
 }
 
 void CustomController::addZmpOffset()
@@ -2248,15 +2248,15 @@ void CustomController::GravityCalculate_MJ()
     {
       wbc_.set_contact(rd_, 1, 0);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_);
-      Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
-      Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
+      // Gravity_SSP_(1) = 1.4*Gravity_SSP_(1);
+      // Gravity_SSP_(5) = 1.15*Gravity_SSP_(5);
     }
     else if(foot_step_(current_step_num_,6) == 0) // 오른발 지지
     {
       wbc_.set_contact(rd_, 0, 1);       
       Gravity_SSP_ = wbc_.gravity_compensation_torque(rd_); 
-      Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
-      Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
+      // Gravity_SSP_(7) = 1.4*Gravity_SSP_(7);
+      // Gravity_SSP_(11) = 1.15*Gravity_SSP_(11);
     }
     Gravity_DSP_.setZero();
     contact_torque_MJ.setZero();
@@ -2560,13 +2560,113 @@ void CustomController::hip_compensator()
   ref_q_(10) = ref_q_(10) - right_ank_pitch_temp;
 }
 
+// void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
+// {     
+//   Eigen::Vector12d current_u;
+//   double del_t = 0.0, Kp = 0.0;
+//   del_t = 1/hz_; Kp = 25.0; // 실험
+//   //Kp = 20.0; // 시뮬
+
+//   if(walking_tick_mj == 0)  
+//   {
+//     for(int i = 0; i < 12; i++)
+//     { DOB_IK_output_b_(i) = rd_.q_(i); DOB_IK_output_(i) = rd_.q_(i); current_u(i) = rd_.q_(i); }    
+//   }
+ 
+//   if(walking_tick_mj > 0)
+//   {
+//     for (int i = 0; i < 12; i++)
+//     {
+//       current_u(i) = (rd_.q_(i) - (1 - Kp*del_t)*q_prev_MJ_(i)) / (Kp*del_t);
+//     }
+//   }
+ 
+//   Eigen::Vector12d d_hat;    
+//   d_hat = current_u - DOB_IK_output_b_ ;
+ 
+//   if(walking_tick_mj == 0)
+//     d_hat_b = d_hat;
+
+//   d_hat = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*d_hat + 1/(1+2*M_PI*8.0*del_t)*d_hat_b;
+
+//   double default_gain = 0.0;
+//   double compliant_gain = 0.0;
+//   double compliant_tick = 0.1*hz_;
+//   double gain_temp = 0.0;
+//   for (int i = 0; i < 12; i ++)
+//   {
+//     if(i < 6)
+//     {
+//       gain_temp = default_gain;
+      
+//       if (foot_step_(current_step_num_,6) == 0)
+//       {
+//         if(walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick)
+//         {
+//           gain_temp = default_gain;
+//         }
+//         else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
+//         {
+//           gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_, default_gain, compliant_gain, 0.0, 0.0);
+//         }
+//         else
+//         {
+//           gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+//         }
+//       }
+//       else
+//       {
+//         gain_temp = default_gain;
+//       }
+             
+//       DOB_IK_output_(i) = desired_leg_q(i) + gain_temp*d_hat(i);  
+//     }
+//     else
+//     {      
+//       gain_temp = default_gain;
+      
+//       if (foot_step_(current_step_num_,6) == 1) // 왼발 지지 상태
+//       {
+//         if(walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick)
+//         {
+//           gain_temp = default_gain;
+//         }
+//         else if(walking_tick_mj >= t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick && walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_)
+//         {
+//           gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick, t_start_ + t_total_ - t_rest_last_ - t_double2_, default_gain, compliant_gain, 0.0, 0.0);
+//         }
+//         else
+//         {
+//           gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+//         }
+//       }
+//       else // 오른발 지지 상태
+//       {
+//         gain_temp = default_gain;
+//       }
+      
+//       DOB_IK_output_(i) = desired_leg_q(i) + gain_temp*d_hat(i);  
+//     }
+//   }   
+
+//   d_hat_b = d_hat;
+//   DOB_IK_output_b_ = DOB_IK_output_;
+// }
+
 void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
 {     
   Eigen::Vector12d current_u;
   double del_t = 0.0, Kp = 0.0;
-  del_t = 1/hz_; Kp = 25.0; // 실험
-  //Kp = 20.0; // 시뮬
-
+  Eigen::Vector12d Kp_d;
+  Kp_d.setZero();
+  del_t = 1/hz_; 
+  Kp_d(0) = 20;
+  Kp_d(1) = 26; Kp_d(2) = 22; Kp_d(3) = 22.3; Kp_d(4) = 19.5; Kp_d(5) = 22.6;
+  Kp_d(6) = 20;
+  Kp_d(7) = 26; Kp_d(8) = 22; Kp_d(9) = 22.3; Kp_d(10) = 19.5; Kp_d(11) = 22.6;
+  // 시뮬 Hip roll:26 pitch:22 Knee pitch:22.3 Ankle pitch:19.5 Ankle roll: 22.6
+  // 시뮬에서 실험 로봇 게인쓰면, Hip roll:105 pitch:159.7 Knee pitch:124.3 Ankle pitch:142.3 Ankle roll: 162.1 -> 너무 과한 게인.
+  // MOCCA에서 측정했을때는 1600/80 : 15 , 4000/120 : 27.7 , 6400/160 : 35
   if(walking_tick_mj == 0)  
   {
     for(int i = 0; i < 12; i++)
@@ -2577,7 +2677,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   {
     for (int i = 0; i < 12; i++)
     {
-      current_u(i) = (rd_.q_(i) - (1 - Kp*del_t)*q_prev_MJ_(i)) / (Kp*del_t);
+      current_u(i) = (rd_.q_(i) - (1 - Kp_d(i)*del_t)*q_prev_MJ_(i)) / (Kp_d(i)*del_t);
     }
   }
  
@@ -2587,10 +2687,10 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   if(walking_tick_mj == 0)
     d_hat_b = d_hat;
 
-  d_hat = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*d_hat + 1/(1+2*M_PI*8.0*del_t)*d_hat_b;
+  d_hat = (2*M_PI*6.0*del_t)/(1 + 2*M_PI*6.0*del_t)*d_hat + 1/(1 + 2*M_PI*6.0*del_t)*d_hat_b;
 
   double default_gain = 0.0;
-  double compliant_gain = 0.0;
+  double compliant_gain = 1.0;
   double compliant_tick = 0.1*hz_;
   double gain_temp = 0.0;
   for (int i = 0; i < 12; i ++)
@@ -2599,7 +2699,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
     {
       gain_temp = default_gain;
       
-      if (foot_step_(current_step_num_,6) == 0)
+      if (foot_step_(current_step_num_,6) == 0) // 오른발 지지
       {
         if(walking_tick_mj < t_start_ + t_total_ - t_rest_last_ - t_double2_ - compliant_tick)
         {
@@ -2611,7 +2711,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
         }
         else
         {
-          gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+          gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
         }
       }
       else
@@ -2637,7 +2737,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
         }
         else
         {
-          gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_, t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
+          gain_temp = DyrosMath::cubic(walking_tick_mj, t_start_ + t_total_ - t_rest_last_ - t_double2_ , t_start_ + t_total_, compliant_gain, default_gain, 0.0, 0.0);
         }
       }
       else // 오른발 지지 상태
@@ -2651,6 +2751,7 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
   d_hat_b = d_hat;
   DOB_IK_output_b_ = DOB_IK_output_;
+  //MJ_graph << desired_leg_q(7) << "," << DOB_IK_output_(7) << "," << desired_leg_q(8) << "," << DOB_IK_output_(8) << "," << desired_leg_q(9) << "," << DOB_IK_output_(9) << "," << desired_leg_q(10) << "," << DOB_IK_output_(10)<< "," << desired_leg_q(11) << "," << DOB_IK_output_(11) << "," << gain_temp << endl;
 }
 
 void CustomController::CP_compen_MJ()
