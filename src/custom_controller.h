@@ -54,6 +54,8 @@ public:
   void SC_err_compen(double x_des, double y_des);
 
   void CP_compen_MJ();
+  void CP_compen_MJ_FT();
+  double ZMP_Y_REF;
   void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
   double U_ZMP_y_ssp = 0;
   double U_ZMP_y_ssp_LPF = 0;

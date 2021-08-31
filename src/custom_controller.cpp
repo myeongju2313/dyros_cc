@@ -39,8 +39,10 @@ void CustomController::PedalCommandCallback(const dyros_pedal::WalkingCommandCon
 // ofstream MJ_joint("/home/dyros/data/myeongju/MJ_joint.txt");
 // ofstream MJ_ZMP("/home/dyros/data/myeongju/MJ_zmp.txt");
 ofstream MJ_graph("/home/myeongju/MJ_graph.txt");
+ofstream MJ_graph1("/home/myeongju/MJ_graph1.txt");
 ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
-ofstream MJ_ZMP("/home/myeongju/MJ_zmp.txt");
+ofstream MJ_joint1("/home/myeongju/MJ_joint1.txt");
+ofstream MJ_ZMP("/home/myeongju/MJ_ZMP.txt");
 
 void CustomController::computeSlow()
 {
@@ -109,7 +111,7 @@ void CustomController::computeSlow()
             }
 
             CP_compen_MJ();
-            
+            CP_compen_MJ_FT();
             for(int i = 0; i < MODEL_DOF; i++)
             {
               ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ;  
@@ -371,12 +373,12 @@ void CustomController::updateInitialState()
 
     pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
     
-    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
-    //lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
+    // lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm; // 기울기 반영
     lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
     
-    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
-    //rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
+    // rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm; // 기울기 반영
     rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
     
     com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -423,12 +425,12 @@ void CustomController::getRobotState()
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
 
-  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
-  //lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm;
+  // lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+  lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm; // 기울기 반영
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
   
-  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
-  //rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm;
+  // rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+  rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm; // 기울기 반영
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
    
   com_float_current_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -478,7 +480,7 @@ void CustomController::getRobotState()
   { zmp_measured_LPF_.setZero(); }
 
   zmp_measured_LPF_ = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*zmp_measured_ + 1/(1+2*M_PI*8.0*del_t)*zmp_measured_LPF_;
- 
+  MJ_graph << lfoot_float_current_.translation()(1) - rfoot_float_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl; 
 }
 
 void CustomController::calculateFootStepTotal()
@@ -1831,6 +1833,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
         px_ref(i) = ref_zmp_(i,0);
         py_ref(i) = ref_zmp_(i,1);
     }
+    ZMP_Y_REF = py_ref(tick);
         
     Eigen::VectorXd px, py;
     px.resize(1); py.resize(1);
@@ -1917,7 +1920,9 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-        
+
+    //MJ_graph << XD(0) << "," << XD(1) << "," << com_support_cp_(0) << "," << com_float_current_dot_LPF(0) << endl;
+    //MJ_ZMP << py_ref(tick) << endl;
 }
 
 // void CustomController::SC_err_compen(double x_des, double y_des)
@@ -2661,9 +2666,9 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   Kp_d.setZero();
   del_t = 1/hz_; 
   Kp_d(0) = 20;
-  Kp_d(1) = 26; Kp_d(2) = 22; Kp_d(3) = 22.3; Kp_d(4) = 19.5; Kp_d(5) = 22.6;
+  Kp_d(1) = 26; Kp_d(2) = 22; Kp_d(3) = 22; Kp_d(4) = 19; Kp_d(5) = 22.6;
   Kp_d(6) = 20;
-  Kp_d(7) = 26; Kp_d(8) = 22; Kp_d(9) = 22.3; Kp_d(10) = 19.5; Kp_d(11) = 22.6;
+  Kp_d(7) = 26; Kp_d(8) = 22; Kp_d(9) = 22; Kp_d(10) = 19; Kp_d(11) = 22.6;
   // 시뮬 Hip roll:26 pitch:22 Knee pitch:22.3 Ankle pitch:19.5 Ankle roll: 22.6
   // 시뮬에서 실험 로봇 게인쓰면, Hip roll:105 pitch:159.7 Knee pitch:124.3 Ankle pitch:142.3 Ankle roll: 162.1 -> 너무 과한 게인.
   // MOCCA에서 측정했을때는 1600/80 : 15 , 4000/120 : 27.7 , 6400/160 : 35
@@ -2687,12 +2692,13 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
   if(walking_tick_mj == 0)
     d_hat_b = d_hat;
 
-  d_hat = (2*M_PI*6.0*del_t)/(1 + 2*M_PI*6.0*del_t)*d_hat + 1/(1 + 2*M_PI*6.0*del_t)*d_hat_b;
+  d_hat = (2*M_PI*15.0*del_t)/(1 + 2*M_PI*15.0*del_t)*d_hat + 1/(1 + 2*M_PI*15.0*del_t)*d_hat_b;
 
   double default_gain = 0.0;
   double compliant_gain = 1.0;
-  double compliant_tick = 0.1*hz_;
+  double compliant_tick = 0.2*hz_;
   double gain_temp = 0.0;
+
   for (int i = 0; i < 12; i ++)
   {
     if(i < 6)
@@ -2751,7 +2757,12 @@ void CustomController::Compliant_control(Eigen::Vector12d desired_leg_q)
 
   d_hat_b = d_hat;
   DOB_IK_output_b_ = DOB_IK_output_;
-  //MJ_graph << desired_leg_q(7) << "," << DOB_IK_output_(7) << "," << desired_leg_q(8) << "," << DOB_IK_output_(8) << "," << desired_leg_q(9) << "," << DOB_IK_output_(9) << "," << desired_leg_q(10) << "," << DOB_IK_output_(10)<< "," << desired_leg_q(11) << "," << DOB_IK_output_(11) << "," << gain_temp << endl;
+  
+  //MJ_graph << desired_leg_q(0) << "," << rd_.q_(0) << "," << desired_leg_q(1) << "," << rd_.q_(1) << "," << desired_leg_q(2) << "," << rd_.q_(2) << "," << desired_leg_q(3) << "," << rd_.q_(3) << "," << desired_leg_q(4) << "," << rd_.q_(4) << "," << desired_leg_q(5) << "," << rd_.q_(5) << endl;
+  // MJ_graph << d_hat(0) << "," << d_hat(1) << "," << d_hat(2) << "," << d_hat(3) << "," << d_hat(4) << "," << d_hat(5) << endl;
+  // MJ_graph1 << d_hat(6) << "," << d_hat(7) << "," << d_hat(8) << "," << d_hat(9) << "," << d_hat(10) << "," << d_hat(11) << endl; 
+  // MJ_joint << DOB_IK_output_(0) << "," << desired_leg_q(0) << "," << DOB_IK_output_(1) << "," << desired_leg_q(1) << "," << DOB_IK_output_(2) << "," << desired_leg_q(2) << "," << DOB_IK_output_(3) << "," << desired_leg_q(3) << "," << DOB_IK_output_(4) << "," << desired_leg_q(4) << "," << DOB_IK_output_(5) << "," << desired_leg_q(5) << endl;
+  // MJ_joint1 << DOB_IK_output_(6) << "," << desired_leg_q(6) << "," << DOB_IK_output_(7) << "," << desired_leg_q(7) << "," << DOB_IK_output_(8) << "," << desired_leg_q(8) << "," << DOB_IK_output_(9) << "," << desired_leg_q(9) << "," << DOB_IK_output_(10) << "," << desired_leg_q(10) << "," << DOB_IK_output_(11) << "," << desired_leg_q(11) <<endl;
 }
 
 void CustomController::CP_compen_MJ()
@@ -2778,6 +2789,26 @@ void CustomController::CP_compen_MJ()
 
   Tau_CP(5) = -F_L * del_zmp(1); // L roll
   Tau_CP(11) = -F_R * del_zmp(1); // R roll
+  // MJ_graph1 << alpha << endl;
+}
+
+void CustomController::CP_compen_MJ_FT()
+{
+  double alpha = 0;
+  double F_R = 0, F_L = 0;
+  
+  alpha = (ZMP_Y_REF - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+  
+  if(alpha > 1)
+  { alpha = 1; }
+  else if(alpha < 0)
+  { alpha = 0; } 
+
+  F_R = (1 - alpha) * rd_.com_.mass * GRAVITY;
+  F_L = alpha * rd_.com_.mass * GRAVITY;
+
+  //MJ_graph1 << ZMP_Y_REF << "," << lfoot_support_current_.translation()(1) << "," << rfoot_support_current_.translation()(1) << "," << alpha << endl;
+
 }
 void CustomController::updateInitialStateJoy()
 {
