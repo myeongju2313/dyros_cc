@@ -189,6 +189,9 @@ public:
   Eigen::Vector2d zmp_err_;
   Eigen::Vector2d zmp_measured_LPF_;
 
+  double F_F_input = 0;
+  double F_F_input_dot = 0; 
+
   double P_angle_i = 0;
   double P_angle = 0;
   double P_angle_input_dot = 0;

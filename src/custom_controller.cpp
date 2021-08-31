@@ -480,7 +480,7 @@ void CustomController::getRobotState()
   { zmp_measured_LPF_.setZero(); }
 
   zmp_measured_LPF_ = (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*zmp_measured_ + 1/(1+2*M_PI*8.0*del_t)*zmp_measured_LPF_;
-  MJ_graph << lfoot_float_current_.translation()(1) - rfoot_float_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl; 
+   
 }
 
 void CustomController::calculateFootStepTotal()
@@ -1277,8 +1277,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.02;
-  rfoot_zmp_offset_ = 0.02;
+  lfoot_zmp_offset_ = -0.00;
+  rfoot_zmp_offset_ = 0.00;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -2068,8 +2068,11 @@ void CustomController::supportToFloatPattern()
   //lfoot_trajectory_support_.linear() = lfoot_support_init_.linear();
   //rfoot_trajectory_support_.linear() = rfoot_support_init_.linear();
   pelv_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_)*pelv_trajectory_support_;
-  lfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_)*lfoot_trajectory_support_;
-  rfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_)*rfoot_trajectory_support_;
+  lfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_)*lfoot_trajectory_support_ ;
+  rfoot_trajectory_float_ = DyrosMath::inverseIsometry3d(pelv_trajectory_support_)*rfoot_trajectory_support_ ;
+
+  rfoot_trajectory_float_.translation()(2) = rfoot_trajectory_float_.translation()(2) + F_F_input * 0.5;
+  lfoot_trajectory_float_.translation()(2) = lfoot_trajectory_float_.translation()(2) - F_F_input * 0.5; 
 }
 
 void CustomController::getComTrajectory()
@@ -2804,9 +2807,13 @@ void CustomController::CP_compen_MJ_FT()
   else if(alpha < 0)
   { alpha = 0; } 
 
-  F_R = (1 - alpha) * rd_.com_.mass * GRAVITY;
-  F_L = alpha * rd_.com_.mass * GRAVITY;
+  F_R = -(1 - alpha) * rd_.com_.mass * GRAVITY;
+  F_L = -alpha * rd_.com_.mass * GRAVITY;
 
+  F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; 
+  F_F_input = F_F_input + F_F_input_dot*del_t;
+
+  MJ_graph << F_F_input << "," << l_ft_(2) - r_ft_(2) << "," << F_L - F_R <<  endl;
   //MJ_graph1 << ZMP_Y_REF << "," << lfoot_support_current_.translation()(1) << "," << rfoot_support_current_.translation()(1) << "," << alpha << endl;
 
 }
