@@ -55,7 +55,8 @@ public:
 
   void CP_compen_MJ();
   void CP_compen_MJ_FT();
-  double ZMP_Y_REF;
+  double ZMP_X_REF = 0;
+  double ZMP_Y_REF = 0;
   void CLIPM_ZMP_compen_MJ(double XZMP_ref, double YZMP_ref);
   double U_ZMP_y_ssp = 0;
   double U_ZMP_y_ssp_LPF = 0;
@@ -190,7 +191,17 @@ public:
   Eigen::Vector2d zmp_measured_LPF_;
 
   double F_F_input = 0;
-  double F_F_input_dot = 0; 
+  double F_F_input_dot = 0;
+
+  double F_T_L_x_input = 0;
+  double F_T_L_x_input_dot = 0;
+  double F_T_R_x_input = 0;
+  double F_T_R_x_input_dot = 0;  
+
+  double F_T_L_y_input = 0;
+  double F_T_L_y_input_dot = 0;
+  double F_T_R_y_input = 0;
+  double F_T_R_y_input_dot = 0;  
 
   double P_angle_i = 0;
   double P_angle = 0;

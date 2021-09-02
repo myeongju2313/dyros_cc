@@ -810,7 +810,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 20; //
     dlength = 0;
   }
 
@@ -1198,15 +1198,15 @@ void CustomController::Joint_gain_set_MJ()
     Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
     Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
     Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    Kp(4) = 900.0; Kd(4) = 40.0;// Left Ankle pitch
-    Kp(5) = 900.0; Kd(5) = 40.0;// Left Ankle roll
+    Kp(4) = 1800.0; Kd(4) = 70.0;// Left Ankle pitch
+    Kp(5) = 1800.0; Kd(5) = 70.0;// Left Ankle roll
 
     Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
     Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
     Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
     Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    Kp(10) = 900.0; Kd(10) = 40.0;// Right Ankle pitch
-    Kp(11) = 900.0; Kd(11) = 40.0;// Right Ankle roll
+    Kp(10) = 1800.0; Kd(10) = 70.0;// Right Ankle pitch
+    Kp(11) = 1800.0; Kd(11) = 70.0;// Right Ankle roll
 
     Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
     Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
@@ -1833,6 +1833,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
         px_ref(i) = ref_zmp_(i,0);
         py_ref(i) = ref_zmp_(i,1);
     }
+
+    ZMP_X_REF = px_ref(tick);
     ZMP_Y_REF = py_ref(tick);
         
     Eigen::VectorXd px, py;
@@ -2182,15 +2184,15 @@ void CustomController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(1) =  atan2(L_Hip_rot_mat(2,1), -L_Hip_rot_mat(0,1) * sin(q_des(0)) + L_Hip_rot_mat(1,1)*cos(q_des(0))); // Hip roll
     q_des(2) =  atan2(-L_Hip_rot_mat(2,0), L_Hip_rot_mat(2,2)) ; // Hip pitch
     q_des(3) =  q_des(3) ; // Knee pitch
-    q_des(4) =  q_des(4) ; // Ankle pitch
-    q_des(5) =  atan2( L_r(1), L_r(2) ); // Ankle roll
+    q_des(4) =  q_des(4) ;//+ F_T_L_y_input ; // Ankle pitch 
+    q_des(5) =  atan2( L_r(1), L_r(2) ) ;//- F_T_L_x_input; // Ankle roll 
 
     q_des(6) =  atan2(-R_Hip_rot_mat(0,1),R_Hip_rot_mat(1,1));
     q_des(7) =  atan2(R_Hip_rot_mat(2,1), -R_Hip_rot_mat(0,1) * sin(q_des(6)) + R_Hip_rot_mat(1,1)*cos(q_des(6)));
     q_des(8) = atan2(-R_Hip_rot_mat(2,0), R_Hip_rot_mat(2,2));
     q_des(9) = q_des(9) ;
-    q_des(10) = q_des(10) ;
-    q_des(11) =  atan2( R_r(1), R_r(2) );
+    q_des(10) = q_des(10) ;//- F_T_R_y_input;
+    q_des(11) = atan2( R_r(1), R_r(2) ) ;
 
     if(walking_tick_mj == 0)
     { sc_joint_err.setZero(); }
@@ -2799,23 +2801,59 @@ void CustomController::CP_compen_MJ_FT()
 {
   double alpha = 0;
   double F_R = 0, F_L = 0;
+  double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
+  double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0 ;
   
-  alpha = (ZMP_Y_REF - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
-  
+  alpha = ((ZMP_Y_REF + 0*del_zmp(1))- rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+  // 로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨.
   if(alpha > 1)
   { alpha = 1; }
   else if(alpha < 0)
   { alpha = 0; } 
 
   F_R = -(1 - alpha) * rd_.com_.mass * GRAVITY;
-  F_L = -alpha * rd_.com_.mass * GRAVITY;
+  F_L = -alpha * rd_.com_.mass * GRAVITY; // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
 
-  F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; 
+  if(walking_tick_mj == 0)
+  {F_F_input = 0;}
+
+  F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯.. // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  MJ_graph << F_F_input << "," << l_ft_(2) - r_ft_(2) << "," << F_L - F_R <<  endl;
-  //MJ_graph1 << ZMP_Y_REF << "," << lfoot_support_current_.translation()(1) << "," << rfoot_support_current_.translation()(1) << "," << alpha << endl;
+  // Torque
+  // X랑 Y축을 X랑 Y방향으로 헷갈렸었음. IK에 발목 각도명령에 넣는게 아닌듯함..
+  Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF + 0*del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + 0*del_zmp(1))) * F_L) ;
+  
+  if(Tau_all_x < 0)
+  {
+    Tau_R_x = Tau_all_x;
+    Tau_L_x = 0;
+  }
+  else
+  {
+    Tau_R_x = 0;
+    Tau_L_x = Tau_all_x;
+  }   
 
+  Tau_all_y = -((rfoot_support_current_.translation()(0) - ZMP_X_REF) * F_R + (lfoot_support_current_.translation()(0) - ZMP_X_REF) * F_L) ; 
+  Tau_L_y = alpha * Tau_all_y ;
+  Tau_R_y = (1-alpha) * Tau_all_y ;
+
+  //Roll 방향
+  F_T_L_x_input_dot = 0.001*(l_ft_(3) - Tau_L_x) - 0.00001*F_T_L_x_input; 
+  F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
+  
+  F_T_R_x_input_dot = 0.001*(r_ft_(3) - Tau_R_x) - 0.00001*F_T_R_x_input; 
+  F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
+  //Pitch 방향
+  F_T_L_y_input_dot = 0.001*(l_ft_(4) - Tau_L_y) - 0.00001*F_T_L_y_input; 
+  F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t;
+  
+  F_T_R_y_input_dot = 0.001*(r_ft_(4) - Tau_R_y) - 0.00001*F_T_R_y_input; 
+  F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
+
+  //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
+  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << F_T_L_x_input << "," << F_T_R_x_input << "," << alpha << endl;
 }
 void CustomController::updateInitialStateJoy()
 {
