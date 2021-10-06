@@ -2183,15 +2183,15 @@ void CustomController::computeIkControl_MJ(Eigen::Isometry3d float_trunk_transfo
     q_des(0) =  atan2(-L_Hip_rot_mat(0,1),L_Hip_rot_mat(1,1)); // Hip yaw
     q_des(1) =  atan2(L_Hip_rot_mat(2,1), -L_Hip_rot_mat(0,1) * sin(q_des(0)) + L_Hip_rot_mat(1,1)*cos(q_des(0))); // Hip roll
     q_des(2) =  atan2(-L_Hip_rot_mat(2,0), L_Hip_rot_mat(2,2)) ; // Hip pitch
-    q_des(3) =  q_des(3) ; // Knee pitch
-    q_des(4) =  q_des(4) ;//+ F_T_L_y_input ; // Ankle pitch 
+    q_des(3) =  q_des(3); // Knee pitch
+    q_des(4) =  q_des(4);//+ F_T_L_y_input ; // Ankle pitch 
     q_des(5) =  atan2( L_r(1), L_r(2) ) ;//- F_T_L_x_input; // Ankle roll 
 
     q_des(6) =  atan2(-R_Hip_rot_mat(0,1),R_Hip_rot_mat(1,1));
     q_des(7) =  atan2(R_Hip_rot_mat(2,1), -R_Hip_rot_mat(0,1) * sin(q_des(6)) + R_Hip_rot_mat(1,1)*cos(q_des(6)));
     q_des(8) = atan2(-R_Hip_rot_mat(2,0), R_Hip_rot_mat(2,2));
-    q_des(9) = q_des(9) ;
-    q_des(10) = q_des(10) ;//- F_T_R_y_input;
+    q_des(9) = q_des(9);
+    q_des(10) = q_des(10);//- F_T_R_y_input;
     q_des(11) = atan2( R_r(1), R_r(2) ) ;
 
     if(walking_tick_mj == 0)
@@ -2820,7 +2820,7 @@ void CustomController::CP_compen_MJ_FT()
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯.. // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  // Torque
+  //////////// Torque
   // X랑 Y축을 X랑 Y방향으로 헷갈렸었음. IK에 발목 각도명령에 넣는게 아닌듯함..
   Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF + 0*del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + 0*del_zmp(1))) * F_L) ;
   
