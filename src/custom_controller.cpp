@@ -70,7 +70,9 @@ void CustomController::computeSlow()
           
         for(int i = 0; i < MODEL_DOF; i++)
         { ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) ; }
-       
+        // l_ft_ = rd_.ContactForce_FT_raw.segment(0, 6);
+        // r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);         
+        // MJ_graph << l_ft_(3) << "," << r_ft_(3) << endl;
     }
     else if (tc.mode == 11)
     {
@@ -1198,15 +1200,15 @@ void CustomController::Joint_gain_set_MJ()
     Kp(1) = 2100.0; Kd(1) = 90.0;// Left Hip roll
     Kp(2) = 2100.0; Kd(2) = 90.0;// Left Hip pitch
     Kp(3) = 2100.0; Kd(3) = 90.0;// Left Knee pitch
-    Kp(4) = 1800.0; Kd(4) = 70.0;// Left Ankle pitch
-    Kp(5) = 1800.0; Kd(5) = 70.0;// Left Ankle roll
+    Kp(4) = 1500.0; Kd(4) = 60.0;// Left Ankle pitch
+    Kp(5) = 1500.0; Kd(5) = 60.0;// Left Ankle roll
 
     Kp(6) = 1800.0; Kd(6) = 70.0;// Right Hip yaw
     Kp(7) = 2100.0; Kd(7) = 90.0;// Right Hip roll
     Kp(8) = 2100.0; Kd(8) = 90.0;// Right Hip pitch
     Kp(9) = 2100.0; Kd(9) = 90.0;// Right Knee pitch
-    Kp(10) = 1800.0; Kd(10) = 70.0;// Right Ankle pitch
-    Kp(11) = 1800.0; Kd(11) = 70.0;// Right Ankle roll
+    Kp(10) = 1500.0; Kd(10) = 60.0;// Right Ankle pitch
+    Kp(11) = 1500.0; Kd(11) = 60.0;// Right Ankle roll
 
     Kp(12) = 2200.0; Kd(12) = 90.0;// Waist yaw
     Kp(13) = 2200.0; Kd(13) = 90.0;// Waist pitch
@@ -1606,8 +1608,8 @@ void CustomController::getFootTrajectory()
       lfoot_trajectory_euler_support_ = lfoot_support_euler_init_;
     } 
 
-    lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_L_x_input);
-    rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_R_x_input);
+    lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_L_x_input);
+    rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_R_x_input);
   }
  
   else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)  
@@ -1619,7 +1621,7 @@ void CustomController::getFootTrajectory()
       lfoot_trajectory_support_.translation() = lfoot_support_init_.translation();             
       lfoot_trajectory_euler_support_.setZero();
        
-      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_L_x_input);
+      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_L_x_input);
       
       if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + (t_total_ - t_rest_init_ - t_rest_last_ - t_double1_ - t_double2_)/2.0)
       { rfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_mj,t_start_+ t_rest_init_ + t_double1_ + t_rest_temp, t_start_real_ + t_double1_ + (t_total_ - t_rest_init_ - t_rest_last_ - t_double1_ - t_double2_)/2.0,0,foot_height_,0.0,0.0); }  
@@ -1631,14 +1633,14 @@ void CustomController::getFootTrajectory()
       
       rfoot_trajectory_euler_support_(1) = 0;
       rfoot_trajectory_euler_support_(2) = DyrosMath::cubic(walking_tick_mj,t_start_ + t_rest_init_ + t_double1_,t_start_ + t_total_ - t_rest_last_ - t_double2_,rfoot_support_euler_init_(2),target_swing_foot(5),0.0,0.0);
-      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_R_x_input);
+      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_R_x_input);
     }
     else if(foot_step_(current_step_num_,6) == 0)
     {
       rfoot_trajectory_support_.translation() = rfoot_support_init_.translation();
       rfoot_trajectory_euler_support_.setZero();
       
-      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_R_x_input);
+      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_R_x_input);
  
       if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_ + (t_total_-t_rest_init_-t_rest_last_-t_double1_-t_double2_)/2.0)
       { lfoot_trajectory_support_.translation()(2) = DyrosMath::cubic(walking_tick_mj,t_start_real_ + t_double1_ + t_rest_temp, t_start_real_+t_double1_+(t_total_-t_rest_init_-t_rest_last_-t_double1_-t_double2_)/2.0,0,foot_height_,0.0,0.0); }
@@ -1650,7 +1652,7 @@ void CustomController::getFootTrajectory()
       
       lfoot_trajectory_euler_support_(1) = 0;  
       lfoot_trajectory_euler_support_(2) = DyrosMath::cubic(walking_tick_mj,t_start_real_+t_double1_,t_start_+t_total_-t_rest_last_-t_double2_,lfoot_support_euler_init_(2),target_swing_foot(5),0.0,0.0);
-      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_L_x_input);
+      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_L_x_input);
     }
   }
   else
@@ -1659,7 +1661,7 @@ void CustomController::getFootTrajectory()
     {
       lfoot_trajectory_euler_support_.setZero();
    
-      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_L_x_input);
+      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_L_x_input);
       
       for(int i=0; i<3; i++)
       {
@@ -1667,21 +1669,21 @@ void CustomController::getFootTrajectory()
         rfoot_trajectory_euler_support_(i) = target_swing_foot(i+3);
       }
    
-      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_R_x_input);
+      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_R_x_input);
     }
     else if (foot_step_(current_step_num_,6) == 0)
     {
       rfoot_trajectory_euler_support_.setZero();
-      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_R_x_input);
+      rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(rfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_R_x_input);
 
       for(int i=0; i<3; i++)
       {
         lfoot_trajectory_support_.translation()(i) = target_swing_foot(i);
         lfoot_trajectory_euler_support_(i) = target_swing_foot(i+3);
       } 
-      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(F_T_L_x_input);
+      lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(lfoot_trajectory_euler_support_(1))*DyrosMath::rotateWithX(-F_T_L_x_input);
     }
-  }  cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << rd_.q_(11)*180/3.141592 << "," << rd_.q_(5)*180/3.141592 << endl;
+  }  cout << -F_T_R_x_input*180/3.141592 << "," << -F_T_L_x_input*180/3.141592 << "," << rd_.q_(11)*180/3.141592 << "," << rd_.q_(5)*180/3.141592 << endl;
 }
  
 void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi, Eigen::VectorXd& Gd, Eigen::MatrixXd& Gx, Eigen::MatrixXd& A, Eigen::VectorXd& B, Eigen::MatrixXd& C)
@@ -2818,7 +2820,7 @@ void CustomController::CP_compen_MJ_FT()
   if(walking_tick_mj == 0)
   {F_F_input = 0;}
 
-  F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯.. // SSP, DSP 게인값 바꿔야?
+  F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
   //////////// Torque
@@ -2842,10 +2844,10 @@ void CustomController::CP_compen_MJ_FT()
   Tau_R_y = (1-alpha) * Tau_all_y ;
 
   //Roll 방향
-  F_T_L_x_input_dot = 0.001*(Tau_L_x - l_ft_(3)) - 5.0*F_T_L_x_input; 
+  F_T_L_x_input_dot = 0.01*(Tau_L_x - l_ft_(3)) - 50.000*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
   
-  F_T_R_x_input_dot = 0.001*(Tau_R_x - r_ft_(3)) - 5.0*F_T_R_x_input; 
+  F_T_R_x_input_dot = 0.01*(Tau_R_x - r_ft_(3)) - 50.000*F_T_R_x_input; 
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
   //Pitch 방향
   F_T_L_y_input_dot = 0.001*(l_ft_(4) - Tau_L_y) - 0.00001*F_T_L_y_input; 
@@ -2855,7 +2857,7 @@ void CustomController::CP_compen_MJ_FT()
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
 
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << F_T_L_x_input << "," << F_T_R_x_input << "," << alpha << endl;
+  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << -F_T_L_x_input << "," << -F_T_R_x_input << "," << alpha << endl;
 }
 void CustomController::updateInitialStateJoy()
 {
