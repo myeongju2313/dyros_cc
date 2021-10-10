@@ -2844,10 +2844,10 @@ void CustomController::CP_compen_MJ_FT()
   Tau_R_y = (1-alpha) * Tau_all_y ;
 
   //Roll 방향
-  F_T_L_x_input_dot = 0.01*(Tau_L_x - l_ft_(3)) - 100.000*F_T_L_x_input; 
+  F_T_L_x_input_dot = 0.015*(Tau_L_x - l_ft_(3)) - 100.000*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
   
-  F_T_R_x_input_dot = 0.01*(Tau_R_x - r_ft_(3)) - 100.000*F_T_R_x_input; 
+  F_T_R_x_input_dot = 0.015*(Tau_R_x - r_ft_(3)) - 100.000*F_T_R_x_input; 
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
   //Pitch 방향
   F_T_L_y_input_dot = 0.001*(l_ft_(4) - Tau_L_y) - 0.00001*F_T_L_y_input; 
