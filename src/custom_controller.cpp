@@ -2826,20 +2826,20 @@ void CustomController::CP_compen_MJ_FT()
   
   //////////// Torque
   // X랑 Y축을 X랑 Y방향으로 헷갈렸었음. IK에 발목 각도명령에 넣는게 아닌듯함..
-  Tau_all_x = -((rfoot_support_current_.translation()(1) - ZMP_Y_REF) * F_R + (lfoot_support_current_.translation()(1) - ZMP_Y_REF) * F_L) ;
+  Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_L) ;
   //cout << (rfoot_support_current_.translation()(1) - ZMP_Y_REF) * F_R << "," << (lfoot_support_current_.translation()(1) - ZMP_Y_REF) * F_L << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1)<< "," << alpha << endl;
-  //cout << Tau_all_x << endl;
+  
   if(Tau_all_x < 0)
   {
-    Tau_R_x = Tau_all_x;
-    Tau_L_x = 0;
+    Tau_R_x = 0;
+    Tau_L_x = -Tau_all_x;
   }
   else
   {
-    Tau_R_x = 0;
-    Tau_L_x = Tau_all_x;
+    Tau_R_x = -Tau_all_x;
+    Tau_L_x = 0;
   }   
-   
+  //cout << Tau_R_x << "," << Tau_L_x << "," << Tau_all_x << "," << (rfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_R << "," <<  (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_L << endl;
   Tau_all_y = -((rfoot_support_current_.translation()(0) - ZMP_X_REF) * F_R + (lfoot_support_current_.translation()(0) - ZMP_X_REF) * F_L) ; 
   Tau_L_y = alpha * Tau_all_y ;
   Tau_R_y = (1-alpha) * Tau_all_y ;
@@ -2858,8 +2858,8 @@ void CustomController::CP_compen_MJ_FT()
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
 
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << F_T_L_x_input << "," << F_T_R_x_input << "," << alpha << endl;
-  MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << F_T_L_y_input << "," << F_T_R_y_input << "," << alpha << endl;
+  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << F_T_L_y_input << "," << F_T_R_y_input << "," << alpha << endl;
 }
 void CustomController::updateInitialStateJoy()
 {
