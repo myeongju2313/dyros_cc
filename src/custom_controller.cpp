@@ -116,7 +116,7 @@ void CustomController::computeSlow()
             CP_compen_MJ_FT();
             for(int i = 0; i < MODEL_DOF; i++)
             {
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0*Tau_CP(i) ;  
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ;  
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
             }               
                         
@@ -1922,7 +1922,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
     del_zmp(0) = 1.01*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.01*(cp_measured_(1) - cp_desired_(1));
+    del_zmp(1) = 1.3*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
 
@@ -2316,7 +2316,7 @@ void CustomController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.2;
+    step_length_x_ = 0.0;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2839,7 +2839,7 @@ void CustomController::CP_compen_MJ_FT()
   else if(Tau_all_y < -100)
   { Tau_all_y = -100; }
 
-  // if(Tau_all_x < 0)
+  // if(Tau_all_x < 0) // Only reference ZMP control
   // {
   //   Tau_R_x = 0;
   //   Tau_L_x = Tau_all_x;
@@ -2855,24 +2855,25 @@ void CustomController::CP_compen_MJ_FT()
 
   Tau_L_y = -alpha * Tau_all_y ;
   Tau_R_y = -(1-alpha) * Tau_all_y ;
- 
-  //Roll 방향
-  F_T_L_x_input_dot = -0.03*(Tau_L_x - l_ft_(3)) - 50.0*F_T_L_x_input; 
-  F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
-     
-  F_T_R_x_input_dot = -0.03*(Tau_R_x - r_ft_(3)) - 50.0*F_T_R_x_input; 
-  F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
-  cout << F_T_R_x_input*180/3.141592 << "," << Tau_all_x << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
-  //Pitch 방향
-  F_T_L_y_input_dot = 0.03*(Tau_L_y - l_ft_(4)) - 100.0*F_T_L_y_input; 
-  F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t;
   
-  F_T_R_y_input_dot = 0.03*(Tau_R_y - r_ft_(4)) - 100.0*F_T_R_y_input; 
+  //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
+  F_T_L_x_input_dot = -0.05*(Tau_L_x - l_ft_(3)) - 50*F_T_L_x_input; 
+  F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
+  //F_T_L_x_input = 0;   
+  F_T_R_x_input_dot = -0.05*(Tau_R_x - r_ft_(3)) - 50*F_T_R_x_input; 
+  F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
+  //F_T_R_x_input = 0;
+  //Pitch 방향 
+  F_T_L_y_input_dot = 0.05*(Tau_L_y - l_ft_(4)) - 100.0*F_T_L_y_input; 
+  F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t; 
+  //F_T_L_y_input = 0;
+  F_T_R_y_input_dot = 0.05*(Tau_R_y - r_ft_(4)) - 100.0*F_T_R_y_input; 
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
-
+  //F_T_R_y_input = 0; 
+  //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
-  //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << "," << alpha << endl;
+  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
 }
 void CustomController::updateInitialStateJoy()
 {
