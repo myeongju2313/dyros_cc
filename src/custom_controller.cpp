@@ -1611,7 +1611,7 @@ void CustomController::getFootTrajectory()
     lfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(lfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_L_y_input)*DyrosMath::rotateWithX(-F_T_L_x_input);
     rfoot_trajectory_support_.linear() = DyrosMath::rotateWithZ(rfoot_trajectory_euler_support_(2))*DyrosMath::rotateWithY(F_T_R_y_input)*DyrosMath::rotateWithX(-F_T_R_x_input);
   }
- 
+  
   else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)  
   {
     double t_rest_temp = 0.00*hz_;
@@ -2819,13 +2819,13 @@ void CustomController::CP_compen_MJ_FT()
   F_L = -alpha * rd_.com_.mass * GRAVITY; // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
 
   if(walking_tick_mj == 0)
-  {F_F_input = 0;}
-
+  {F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
+  //////////// Force
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
   
   //////////// Torque
-  // X랑 Y축을 X랑 Y방향으로 헷갈렸었음. IK에 발목 각도명령에 넣는게 아닌듯함..
+  // X랑 Y축을 X랑 Y방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
   Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_L) ;
   Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + 0*del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + 0*del_zmp(0))) * F_L) ;
   
@@ -2855,12 +2855,38 @@ void CustomController::CP_compen_MJ_FT()
 
   Tau_L_y = -alpha * Tau_all_y ;
   Tau_R_y = -(1-alpha) * Tau_all_y ;
-  
+
+  double Kr = 0.0;
+  double Kl = 0.0;
+  if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+  {
+    Kr = 10.0;
+    Kl = 10.0;    
+  }
+  else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+  {
+    if(alpha == 1) // 왼발 지지
+    {
+      Kl = 10.0;
+      Kr = 50.0;
+    }    
+    if(alpha == 0) // 오른발 지지
+    {
+      Kl = 50.0;
+      Kr = 10.0;
+    }
+  }
+  else
+  {
+    Kr = 10.0;
+    Kl = 10.0;
+  }
+  //cout << alpha << endl;
   //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
-  F_T_L_x_input_dot = -0.05*(Tau_L_x - l_ft_(3)) - 50*F_T_L_x_input; 
+  F_T_L_x_input_dot = -0.3*(Tau_L_x - l_ft_(3)) - Kl*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
   //F_T_L_x_input = 0;   
-  F_T_R_x_input_dot = -0.05*(Tau_R_x - r_ft_(3)) - 50*F_T_R_x_input; 
+  F_T_R_x_input_dot = -0.3*(Tau_R_x - r_ft_(3)) - Kr*F_T_R_x_input; 
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
   //F_T_R_x_input = 0;
   //Pitch 방향 
@@ -2872,8 +2898,8 @@ void CustomController::CP_compen_MJ_FT()
   //F_T_R_y_input = 0; 
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
-  MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
+  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
 }
 void CustomController::updateInitialStateJoy()
 {
