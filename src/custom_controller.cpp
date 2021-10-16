@@ -1279,8 +1279,8 @@ void CustomController::addZmpOffset()
 {
   double lfoot_zmp_offset_, rfoot_zmp_offset_;
  
-  lfoot_zmp_offset_ = -0.00;
-  rfoot_zmp_offset_ = 0.00;
+  lfoot_zmp_offset_ = -0.01;
+  rfoot_zmp_offset_ = 0.01;
 
   foot_step_support_frame_offset_ = foot_step_support_frame_;
 
@@ -2802,13 +2802,61 @@ void CustomController::CP_compen_MJ()
 }
 
 void CustomController::CP_compen_MJ_FT()
-{
+{ // 기존 알고리즘에서 바꾼거 : 1. zmp offset 2. supportToFloatPattern 함수 3. Tau_CP -> 0 4. getfoottrajectory에서 발의 Euler angle
   double alpha = 0;
   double F_R = 0, F_L = 0;
   double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
   double Tau_all_x = 0, Tau_R_x = 0, Tau_L_x = 0 ;
-  
-  alpha = ((ZMP_Y_REF + 0*del_zmp(1))- rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+  double zmp_offset = 0, ZMP_Y_REF_alpha = 0;
+
+  zmp_offset = 0.01; // zmp_offset 함수 참고
+
+  // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
+  if(walking_tick_mj > t_temp_)
+  {
+    if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset*(walking_tick_mj-(t_start_ + t_rest_init_ + t_double1_) + 600)/600;
+      }  
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset*(walking_tick_mj-(t_start_ + t_rest_init_ + t_double1_) + 600)/600;
+      }
+    }
+    else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset ;
+      }
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset ;
+      }
+    }
+    else
+    {
+      if(foot_step_(current_step_num_,6) == 1) 
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset - zmp_offset*(walking_tick_mj-(t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
+      }  
+      else
+      {
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset + zmp_offset*(walking_tick_mj-(t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
+      }      
+    }
+  }    
+  else
+  {
+    ZMP_Y_REF_alpha = ZMP_Y_REF ;
+  }
+
+  ////////////////////////
+
+  alpha = (ZMP_Y_REF_alpha + 0*del_zmp(1) - rfoot_support_current_.translation()(1))/(lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1));
+  //cout << alpha << "," << ZMP_Y_REF << "," << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) - rfoot_support_current_.translation()(1) << endl;
   // 로봇에서 구현할때 alpha가 0~1로 나오는지 확인, ZMP offset 0으로 해야됨. 
   if(alpha > 1)
   { alpha = 1; } // 왼발 지지때 alpha = 1
@@ -2819,14 +2867,14 @@ void CustomController::CP_compen_MJ_FT()
   F_L = -alpha * rd_.com_.mass * GRAVITY; // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
 
   if(walking_tick_mj == 0)
-  {F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
+  { F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
   //////////// Force
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
   
   //////////// Torque
   // X랑 Y축을 X랑 Y방향으로 헷갈렸었고, 위치 명령을 발목 IK각도에 바로 넣었었음.
-  Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF + del_zmp(1))) * F_L) ;
+  Tau_all_x = -((rfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha + del_zmp(1))) * F_R + (lfoot_support_current_.translation()(1) - (ZMP_Y_REF_alpha + del_zmp(1))) * F_L) ;
   Tau_all_y = -((rfoot_support_current_.translation()(0) - (ZMP_X_REF + 0*del_zmp(0))) * F_R + (lfoot_support_current_.translation()(0) - (ZMP_X_REF + 0*del_zmp(0))) * F_L) ;
   
   if(Tau_all_x > 100)
@@ -2838,17 +2886,6 @@ void CustomController::CP_compen_MJ_FT()
   { Tau_all_y = 100; }
   else if(Tau_all_y < -100)
   { Tau_all_y = -100; }
-
-  // if(Tau_all_x < 0) // Only reference ZMP control
-  // {
-  //   Tau_R_x = 0;
-  //   Tau_L_x = Tau_all_x;
-  // }
-  // else
-  // {
-  //   Tau_R_x = Tau_all_x;
-  //   Tau_L_x = 0;
-  // }     
   
   Tau_R_x = (1 - alpha) * Tau_all_x;
   Tau_L_x = (alpha) * Tau_all_x;
@@ -2899,6 +2936,7 @@ void CustomController::CP_compen_MJ_FT()
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
   MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
 }
 void CustomController::updateInitialStateJoy()
