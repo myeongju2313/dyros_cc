@@ -812,7 +812,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 20; //
+    middle_total_step_number = 5; //
     dlength = 0;
   }
 
@@ -2812,17 +2812,18 @@ void CustomController::CP_compen_MJ_FT()
   zmp_offset = 0.01; // zmp_offset 함수 참고
 
   // Preview를 이용한 COM 생성시 ZMP offset을 2cm 안쪽으로 넣었지만, alpha 계산은 2cm 넣으면 안되기 때문에 조정해주는 코드
+  // 어떻게 보면 COM, CP 궤적은 ZMP offset이 반영되었고, CP 제어기는 반영안시킨게 안맞는거 같기도함
   if(walking_tick_mj > t_temp_)
   {
     if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
     {
       if(foot_step_(current_step_num_,6) == 1) 
       {
-        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset*(walking_tick_mj-(t_start_ + t_rest_init_ + t_double1_) + 600)/600;
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset*(walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + 600)/600;
       }  
       else
       {
-        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset*(walking_tick_mj-(t_start_ + t_rest_init_ + t_double1_) + 600)/600;
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset*(walking_tick_mj - (t_start_ + t_rest_init_ + t_double1_) + 600)/600;
       }
     }
     else if(walking_tick_mj >= t_start_ + t_rest_init_ + t_double1_ && walking_tick_mj < t_start_ + t_total_ - t_double2_ - t_rest_last_)
@@ -2834,18 +2835,22 @@ void CustomController::CP_compen_MJ_FT()
       else
       {
         ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset ;
-      }
+      } 
     }
-    else
+    else if(walking_tick_mj >= t_start_ + t_total_ - t_double2_ - t_rest_last_ && walking_tick_mj < t_start_ + t_total_)
     {
       if(foot_step_(current_step_num_,6) == 1) 
       {
-        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset - zmp_offset*(walking_tick_mj-(t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
+        ZMP_Y_REF_alpha = ZMP_Y_REF + zmp_offset - zmp_offset*(walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
       }  
       else
       {
-        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset + zmp_offset*(walking_tick_mj-(t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
-      }      
+        ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset + zmp_offset*(walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
+      } cout << walking_tick_mj/hz_ << endl;      
+    }
+    else
+    {
+      ZMP_Y_REF_alpha = ZMP_Y_REF ;
     }
   }    
   else
@@ -2895,6 +2900,7 @@ void CustomController::CP_compen_MJ_FT()
 
   double Kr = 0.0;
   double Kl = 0.0;
+
   if(walking_tick_mj < t_start_ + t_rest_init_ + t_double1_)
   {
     Kr = 10.0;
@@ -2918,7 +2924,7 @@ void CustomController::CP_compen_MJ_FT()
     Kr = 10.0;
     Kl = 10.0;
   }
-  //cout << alpha << endl;
+  
   //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
   F_T_L_x_input_dot = -0.3*(Tau_L_x - l_ft_(3)) - Kl*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
@@ -2935,8 +2941,8 @@ void CustomController::CP_compen_MJ_FT()
   //F_T_R_y_input = 0; 
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
-  //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
+  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
 }
 void CustomController::updateInitialStateJoy()
