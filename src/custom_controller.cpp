@@ -812,7 +812,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 5; //
+    middle_total_step_number = 20; //
     dlength = 0;
   }
 
@@ -2846,7 +2846,7 @@ void CustomController::CP_compen_MJ_FT()
       else
       {
         ZMP_Y_REF_alpha = ZMP_Y_REF - zmp_offset + zmp_offset*(walking_tick_mj - (t_start_ + t_total_ - t_rest_last_ - t_double2_))/600.0  ;
-      } cout << walking_tick_mj/hz_ << endl;      
+      }   
     }
     else
     {
@@ -2942,7 +2942,7 @@ void CustomController::CP_compen_MJ_FT()
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
   //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
-  MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
+  //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << ref_q_(3) << "," << ref_q_(9) << endl;
 }
 void CustomController::updateInitialStateJoy()
