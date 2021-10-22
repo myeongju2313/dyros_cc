@@ -210,10 +210,11 @@ void CustomController::computeSlow()
             }
 
             CP_compen_MJ();
-            
+            CP_compen_MJ_FT();
+
             for(int i = 0; i < MODEL_DOF; i++)
             {
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + Tau_CP(i) ;  
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0*Tau_CP(i) ;  
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
             }               
                         
@@ -463,7 +464,13 @@ void CustomController::getRobotState()
   com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF);
 
   l_ft_ = rd_.ContactForce_FT_raw.segment(0, 6);
-  r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);    
+  r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);
+  
+  if(walking_tick_mj == 0)
+  { l_ft_LPF = l_ft_; r_ft_LPF = r_ft_; }
+  
+  l_ft_LPF = 1/(1+2*M_PI*8.0*del_t)*l_ft_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*l_ft_;
+  r_ft_LPF = 1/(1+2*M_PI*8.0*del_t)*r_ft_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*r_ft_;    
 
   Eigen::Vector2d left_zmp, right_zmp;
 
@@ -2312,12 +2319,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 3;
+    target_x_ = 0.0;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.1;
+    step_length_x_ = 0.10;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2803,7 +2810,7 @@ void CustomController::CP_compen_MJ()
 }
 
 void CustomController::CP_compen_MJ_FT()
-{ // 기존 알고리즘에서 바꾼거 : 1. zmp offset 2. supportToFloatPattern 함수 3. Tau_CP -> 0 4. getfoottrajectory에서 발의 Euler angle
+{ // 기존 알고리즘에서 바꾼거 : 1. zmp offset 2. supportToFloatPattern 함수 3. Tau_CP -> 0 4. getfoottrajectory에서 발의 Euler angle 5.getrobotstate에서 LPF
   double alpha = 0;
   double F_R = 0, F_L = 0;
   double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
@@ -2892,13 +2899,13 @@ void CustomController::CP_compen_MJ_FT()
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  if(F_F_input >= 0.04)
+  if(F_F_input >= 0.03)
   {
-    F_F_input = 0.04;
+    F_F_input = 0.03;
   }
-  else if(F_F_input <= -0.04)
+  else if(F_F_input <= -0.03)
   {
-    F_F_input = -0.04;
+    F_F_input = -0.03;
   }
   
   //////////// Torque
@@ -2958,23 +2965,45 @@ void CustomController::CP_compen_MJ_FT()
   }
   
   //Roll 방향 -0.3,50 -> High performance , -0.1, 50 평지 보행 적당
-  F_T_L_x_input_dot = -0.3*(Tau_L_x - l_ft_(3)) - Kl_roll*F_T_L_x_input; 
+  F_T_L_x_input_dot = -0.2*(Tau_L_x - l_ft_LPF(3)) - Kl_roll*F_T_L_x_input; 
   F_T_L_x_input = F_T_L_x_input + F_T_L_x_input_dot*del_t;
   //F_T_L_x_input = 0;   
-  F_T_R_x_input_dot = -0.3*(Tau_R_x - r_ft_(3)) - Kr_roll*F_T_R_x_input; 
+  F_T_R_x_input_dot = -0.2*(Tau_R_x - r_ft_LPF(3)) - Kr_roll*F_T_R_x_input; 
   F_T_R_x_input = F_T_R_x_input + F_T_R_x_input_dot*del_t;
   //F_T_R_x_input = 0;
+  
   //Pitch 방향 
-  F_T_L_y_input_dot = 0.3*(Tau_L_y - l_ft_(4)) - Kl_pitch*F_T_L_y_input; 
+  F_T_L_y_input_dot = 0.2*(Tau_L_y - l_ft_LPF(4)) - Kl_pitch*F_T_L_y_input; 
   F_T_L_y_input = F_T_L_y_input + F_T_L_y_input_dot*del_t; 
   //F_T_L_y_input = 0;
-  F_T_R_y_input_dot = 0.3*(Tau_R_y - r_ft_(4)) - Kr_pitch*F_T_R_y_input; 
+  F_T_R_y_input_dot = 0.2*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input; 
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
-  //F_T_R_y_input = 0; 
+  //F_T_R_y_input = 0;
+  
+  if(F_T_L_x_input >= 0.15) // 8.5 deg limit
+  { F_T_L_x_input = 0.15; }
+  else if(F_T_L_x_input < -0.15)
+  { F_T_L_x_input = -0.15; }
+  
+  if(F_T_R_x_input >= 0.15) // 8.5 deg limit
+  { F_T_R_x_input = 0.15; }
+  else if(F_T_R_x_input < -0.15)
+  { F_T_R_x_input = -0.15; }
+  
+  if(F_T_L_y_input >= 0.15) // 8.5 deg limit
+  { F_T_L_y_input = 0.15; }
+  else if(F_T_L_y_input < -0.15)
+  { F_T_L_y_input = -0.15; }
+  
+  if(F_T_R_y_input >= 0.15) // 8.5 deg limit
+  { F_T_R_y_input = 0.15; }
+  else if(F_T_R_y_input < -0.15)
+  { F_T_R_y_input = -0.15; }
+
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
-  MJ_graph << alpha << "," << alpha_new << endl;
+  //MJ_graph << alpha << "," << alpha_new << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(3) << "," << r_ft_(3) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(4) << "," << F_F_input << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
   //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }
@@ -3094,11 +3123,13 @@ void CustomController::updateInitialStateJoy()
 
     pelv_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
     //pelv_float_init_.translation()(0) += 0.11;
-      
-    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    
+    //lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+    lfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm; // 기울기 반영
     lfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
     
-    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    //rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+    rfoot_float_init_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm; // 기울기 반영
     rfoot_float_init_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
     
     com_float_init_ = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[COM_id].xpos); // 지면에서 CoM 위치   
@@ -3149,8 +3180,8 @@ void CustomController::updateInitialStateJoy()
 void CustomController::calculateFootStepTotal_MJoy()
 {
   double width = 0.1225;
-  double length  = 0.09;
-  double lengthb = 0.07;
+  double length  = 0.15;
+  double lengthb = 0.1;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;

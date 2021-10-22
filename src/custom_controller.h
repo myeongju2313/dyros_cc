@@ -186,6 +186,8 @@ public:
 
   Eigen::Vector6d r_ft_;
   Eigen::Vector6d l_ft_;
+  Eigen::Vector6d r_ft_LPF;
+  Eigen::Vector6d l_ft_LPF;
   Eigen::Vector2d zmp_measured_;
   Eigen::Vector2d zmp_err_;
   Eigen::Vector2d zmp_measured_LPF_;
