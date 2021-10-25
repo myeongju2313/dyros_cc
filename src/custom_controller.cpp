@@ -445,10 +445,9 @@ void CustomController::getRobotState()
   com_float_current_dot_prev = com_float_current_dot;
   com_float_current_dot_LPF = 1/(1+2*M_PI*6.0*del_t)*com_float_current_dot_LPF + (2*M_PI*6.0*del_t)/(1+2*M_PI*6.0*del_t)*com_float_current_dot; 
 
-  if(walking_tick_mj == 0)
-  { com_float_current_LPF = com_float_current_; }
-  
-  com_float_current_LPF = 1/(1+2*M_PI*8.0*del_t)*com_float_current_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*com_float_current_;    
+  // if(walking_tick_mj == 0) // deleted by MJ (1025)
+  // { com_float_current_LPF = com_float_current_; }  
+  // com_float_current_LPF = 1/(1+2*M_PI*8.0*del_t)*com_float_current_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*com_float_current_;    
 
   if(foot_step_(current_step_num_, 6) == 0)
   { supportfoot_float_current_ = rfoot_float_current_; }
@@ -458,10 +457,9 @@ void CustomController::getRobotState()
   pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;   
   lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * lfoot_float_current_;
   rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * rfoot_float_current_;
-    
-  //cout << "L : " << lfoot_float_current_.linear() << "\n" <<  "R : " << rfoot_float_current_.linear() << endl; 
+     
   com_support_current_ =  DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_);  
-  com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF);
+  //com_support_current_LPF = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(supportfoot_float_current_), com_float_current_LPF); // deleted by MJ (1025)
 
   l_ft_ = rd_.ContactForce_FT_raw.segment(0, 6);
   r_ft_ = rd_.ContactForce_FT_raw.segment(6, 6);
@@ -1933,54 +1931,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
 
-    //MJ_graph << XD(0) << "," << XD(1) << "," << com_support_cp_(0) << "," << com_float_current_dot_LPF(0) << endl;
-    //MJ_ZMP << py_ref(tick) << endl;
 }
 
-// void CustomController::SC_err_compen(double x_des, double y_des)
-// { 
-//   if(walking_tick_mj == 0)
-//   {
-//     SC_com.setZero();
-//   }
-//   if (walking_tick_mj == t_start_ + t_total_-1 && current_step_num_ != total_step_num_-1) // step change 1 tick 이전
-//   {  
-//     sc_err_before.setZero();
-//     sc_err_before(0) = x_des - com_support_current_(0); // 1.3으로 할꺼면 마지막에 더해야됨. SC_com을 이 함수보다 나중에 더하기 때문에
-//     sc_err_before(1) = y_des - com_support_current_(1);
-//   }
-
-//   if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change 
-//   { 
-//     sc_err_after.setZero();
-//     sc_err_after(0) = x_des - com_support_current_(0); 
-//     sc_err_after(1) = y_des - com_support_current_(1);
-//     sc_err = sc_err_after - sc_err_before;
-//   } 
-
-//   if(current_step_num_ != 0)
-//   { 
-//     SC_com(0) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(0), 0, 0.0, 0.0);
-//     SC_com(1) = DyrosMath::cubic(walking_tick_mj, t_start_, t_start_ + t_total_, sc_err(1), 0, 0.0, 0.0);
-//   }
-
-//   if(current_step_num_ != total_step_num_ - 1)
-//   {
-//     if(current_step_num_ != 0 && walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + t_total_)
-//     {
-//     com_support_current_(0) = com_support_current_(0) + SC_com(0);
-//     com_support_current_(1) = com_support_current_(1) + SC_com(1);
-//     }
-//   }
-//   else if(current_step_num_ == total_step_num_ - 1)
-//   {
-//     if(walking_tick_mj >= t_start_ && walking_tick_mj < t_start_ + 2*t_total_)
-//     {  
-//     com_support_current_(0) = com_support_current_(0) + SC_com(0);
-//     com_support_current_(1) = com_support_current_(1) + SC_com(1);
-//     }
-//   }
-// }
 
 void CustomController::SC_err_compen(double x_des, double y_des)
 { 
