@@ -2762,7 +2762,7 @@ void CustomController::CP_compen_MJ()
 }
 
 void CustomController::CP_compen_MJ_FT()
-{ // 기존 알고리즘에서 바꾼거 : 1. zmp offset 2. supportToFloatPattern 함수 3. Tau_CP -> 0 4. getfoottrajectory에서 발의 Euler angle 5.getrobotstate에서 LPF
+{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
   double alpha = 0;
   double F_R = 0, F_L = 0;
   double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
