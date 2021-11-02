@@ -352,7 +352,7 @@ void CustomController::updateInitialState()
     
     xi_ = com_support_init_(0); // preview parameter
     yi_ = com_support_init_(1);
-    zc_ = com_support_init_(2);
+    zc_ = com_support_init_(2) - 0.10;
     
   }
   else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change 
@@ -1713,7 +1713,7 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
     C.resize(1,3);
     C(0,0) = 1;
     C(0,1) = 0;
-    C(0,2) = -0.71/9.81;
+    C(0,2) = -(0.71-0.1)/9.81;
 
     Eigen::MatrixXd A_bar;
     Eigen::VectorXd B_bar;
@@ -1760,22 +1760,22 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
 
     Eigen::Matrix4d K;
     
-    K(0,0) = 1083.572780788710;
-    K(0,1) = 586523.188429418020;  
-    K(0,2) = 157943.283121116518;
-    K(0,3) = 41.206077691894;
-    K(1,0) = 586523.188429418020;
-    K(1,1) = 319653984.254277825356;
-    K(1,2) = 86082274.531361579895;
-    K(1,3) = 23397.754069026785;
-    K(2,0) = 157943.283121116518;
-    K(2,1) = 86082274.531361579895;
-    K(2,2) = 23181823.112113621086;
-    K(2,3) = 6304.466397614751;
-    K(3,0) = 41.206077691894;
-    K(3,1) = 23397.754069026785;
-    K(3,2) = 6304.466397614751;
-    K(3,3) = 2.659250532188;
+    K(0,0) = 1005.499678184029; //1083.572780788710; //1.005499678184029e+03
+    K(0,1) = 505012.0525831668; //586523.188429418020;    
+    K(0,2) = 126064.2023989210;//157943.283121116518; //126064.2023989210;
+    K(0,3) = 33.256759323376340;//41.206077691894;
+    K(1,0) = 505012.0525831668;
+    K(1,1) = 255661052.5743808; //319653984.254277825356; 
+    K(1,2) = 63823208.70590660; //86082274.531361579895; 
+    K(1,3) = 17716.58959517072; //23397.754069026785; //17716.58959517072e+04
+    K(2,0) = 126064.2023989210;
+    K(2,1) = 63823208.70590660;
+    K(2,2) = 15932835.76335356; //23181823.112113621086; //15932835.76335356e+07
+    K(2,3) = 4426.288079435515; //6304.466397614751; //e+03
+    K(3,0) = 33.2568;//41.206077691894;
+    K(3,1) = K(1,3);
+    K(3,2) = 4426.288079435515;//6304.466397614751; //e+03
+    K(3,3) = 2.113428396140232;//2.659250532188;
     
     Eigen::MatrixXd Temp_mat;
     Eigen::MatrixXd Temp_mat_inv;
@@ -1796,11 +1796,11 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
     Ac_bar_tran = Ac_bar.transpose();
     
     Gi.resize(1,1); Gx.resize(1,3);
-    Gi(0,0) = 872.3477 ; //Temp_mat_inv * B_bar_tran * K * I_bar ;
+    Gi(0,0) = 880.8754462657416;//872.3477 ; //Temp_mat_inv * B_bar_tran * K * I_bar ;
     //Gx = Temp_mat_inv * B_bar_tran * K * F_bar ;  
-    Gx(0,0) = 945252.1760702;
-    Gx(0,1) = 256298.6905049;
-    Gx(0,2) = 542.0544196;
+    Gx(0,0) = 885719.9812826684; //945252.1760702; 
+    Gx(0,1) = 222869.2194816837; //256298.6905049; 
+    Gx(0,2) = 503.7972837577312 ;//542.0544196;
     Eigen::MatrixXd X_bar;
     Eigen::Vector4d X_bar_col;
     X_bar.resize(4, NL);
@@ -1981,11 +1981,18 @@ void CustomController::SC_err_compen(double x_des, double y_des)
 
 void CustomController::getPelvTrajectory()
 {
+  double pelv_transition_time = 1.0;
+  double pelv_height_offset_ = 0.0;
+  if (walking_enable_ == true)
+  {
+      pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, 0.0, 0.1, 0.0, 0.0);
+  }
+  cout << com_desired_(2) << endl;
   double z_rot = foot_step_support_frame_(current_step_num_,5);
   
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.6*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
-  pelv_trajectory_support_.translation()(2) = com_desired_(2);
+  pelv_trajectory_support_.translation()(2) = com_desired_(2) - pelv_height_offset_;
   // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   Eigen::Vector3d Trunk_trajectory_euler;
   Trunk_trajectory_euler.setZero();
@@ -2271,12 +2278,12 @@ void CustomController::GravityCalculate_MJ()
 
 void CustomController::parameterSetting()
 {
-    target_x_ = 0.0;
+    target_x_ = 3.5;
     target_y_ = 0.0;
     target_z_ = 0.0;
     com_height_ = 0.71;
-    target_theta_ = 0.0;
-    step_length_x_ = 0.10;
+    target_theta_ = 0;
+    step_length_x_ = 0.35;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2299,7 +2306,7 @@ void CustomController::parameterSetting()
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.1; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -2851,13 +2858,13 @@ void CustomController::CP_compen_MJ_FT()
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  if(F_F_input >= 0.03)
+  if(F_F_input >= 0.02)
   {
-    F_F_input = 0.03;
+    F_F_input = 0.02;
   }
-  else if(F_F_input <= -0.03)
+  else if(F_F_input <= -0.02)
   {
-    F_F_input = -0.03;
+    F_F_input = -0.02;
   }
   
   //////////// Torque
@@ -3061,7 +3068,7 @@ void CustomController::updateInitialStateJoy()
     
     xi_ = com_support_init_(0); // preview parameter
     yi_ = com_support_init_(1);
-    zc_ = com_support_init_(2);
+    zc_ = com_support_init_(2) - 0.10;
     
   }
   else if(current_step_num_ != 0 && walking_tick_mj == t_start_) // step change
@@ -3132,8 +3139,8 @@ void CustomController::updateInitialStateJoy()
 void CustomController::calculateFootStepTotal_MJoy()
 {
   double width = 0.1225;
-  double length  = 0.15;
-  double lengthb = 0.1;
+  double length  = 0.35;
+  double lengthb = 0.15;
   double theta = 10 * DEG2RAD;
   double width_buffer = 0.0;
   double temp;
