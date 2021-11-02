@@ -97,11 +97,13 @@ void CustomController::computeSlow()
             supportToFloatPattern();
             computeIkControl_MJ(pelv_trajectory_float_, lfoot_trajectory_float_, rfoot_trajectory_float_, q_des);
             
+            //ref_q_(12) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(12), 0.3, 0.0, 0.0);
+            
             Compliant_control(q_des);
             for(int i = 0; i < 12; i ++)
             {
-              //ref_q_(i) = q_des(i);
-              ref_q_(i) = DOB_IK_output_(i);
+              ref_q_(i) = q_des(i);
+              //ref_q_(i) = DOB_IK_output_(i);
             }            
             // hip_compensator();
             GravityCalculate_MJ();
@@ -1930,7 +1932,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_zmp(1) = 1.3*(cp_measured_(1) - cp_desired_(1));
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
-
+     
 }
 
 
@@ -2281,17 +2283,23 @@ void CustomController::parameterSetting()
     is_right_foot_swing_ = 1;
 
     // 1.4 Hz 실험
-    t_rest_init_ = 0.27*hz_;
-    t_rest_last_ = 0.27*hz_;  
+    // t_rest_init_ = 0.27*hz_;
+    // t_rest_last_ = 0.27*hz_;  
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 1.3*hz_;
+
+    t_rest_init_ = 0.17*hz_;
+    t_rest_last_ = 0.17*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 1.3*hz_;
+    t_total_= 1.1*hz_;
 
-    // t_rest_init_ = 0.23*hz_;
-    // t_rest_last_ = 0.23*hz_;  
-    // t_double1_ = 0.02*hz_;
-    // t_double2_ = 0.02*hz_;
-    // t_total_= 1.2*hz_;
+    // t_rest_init_ = 0.12*hz_;
+    // t_rest_last_ = 0.12*hz_;  
+    // t_double1_ = 0.03*hz_;
+    // t_double2_ = 0.03*hz_;
+    // t_total_= 0.8*hz_;
 
     t_temp_ = 4.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
@@ -2762,7 +2770,7 @@ void CustomController::CP_compen_MJ()
 }
 
 void CustomController::CP_compen_MJ_FT()
-{ // 기존 알고리즘에서 바꾼거 : 1. zmp offset 2. supportToFloatPattern 함수 3. Tau_CP -> 0 4. getfoottrajectory에서 발의 Euler angle 5.getrobotstate에서 LPF
+{ // 기존 알고리즘에서 바꾼거 : 0. previewcontroller에서 ZMP_Y_REF 변수 추가 1. zmp offset 2. getrobotstate에서 LPF 3. supportToFloatPattern 함수 4. Tau_CP -> 0  5. getfoottrajectory에서 발의 Euler angle
   double alpha = 0;
   double F_R = 0, F_L = 0;
   double Tau_all_y = 0, Tau_R_y = 0, Tau_L_y = 0 ;
@@ -2851,13 +2859,13 @@ void CustomController::CP_compen_MJ_FT()
   F_F_input_dot = 0.001*((l_ft_(2) - r_ft_(2)) - (F_L - F_R)) - 0.00001*F_F_input; // F_F_input값이 크면 다리를 원래대로 빨리줄인다. 이정도 게인 적당한듯0.001/0.00001 // SSP, DSP 게인값 바꿔야?
   F_F_input = F_F_input + F_F_input_dot*del_t;
 
-  if(F_F_input >= 0.03)
+  if(F_F_input >= 0.02)
   {
-    F_F_input = 0.03;
+    F_F_input = 0.02;
   }
-  else if(F_F_input <= -0.03)
+  else if(F_F_input <= -0.02)
   {
-    F_F_input = -0.03;
+    F_F_input = -0.02;
   }
   
   //////////// Torque
@@ -2952,10 +2960,11 @@ void CustomController::CP_compen_MJ_FT()
   else if(F_T_R_y_input < -0.15)
   { F_T_R_y_input = -0.15; }
 
+  MJ_graph << cp_measured_(0) << "," << cp_desired_(0) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << del_zmp(0) << "," << del_zmp(1) << endl;
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << alpha << "," << alpha_new << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(4) << "," << F_F_input << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
+  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(4) << "," << F_F_input << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
   //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }
