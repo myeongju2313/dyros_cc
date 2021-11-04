@@ -120,6 +120,10 @@ void CustomController::computeSlow()
             {
               ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ;  
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
+              if(i == 14)
+              {
+                ControlVal_(i) = Kp(i) * (ref_q_(i) + del_angle_(1) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ; 
+              }
             }               
                         
             desired_q_not_compensated_ = ref_q_;           
@@ -1928,8 +1932,75 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
+    /////////////////////////////////////////////////////////////////////////////////// 1103 이후로 추가 된 코드
+   
+
+    if(walking_tick_mj == 0)
+    {
+      del_ang_acc_.setZero();
+      del_ang_vel_.setZero();
+      del_angle_.setZero();
+      del_ang_acc_prev_.setZero();
+      del_ang_vel_prev_.setZero();
+      del_angle_prev_.setZero(); 
+    }    
+
     del_zmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
-    del_zmp(1) = 1.3*(cp_measured_(1) - cp_desired_(1));
+    del_cmp(1) = 1.3*(cp_measured_(1) - cp_desired_(1));
+
+    del_ang_vel_prev_ = del_ang_vel_;
+    del_angle_prev_ = del_angle_; 
+    unsigned int mode = 0;
+
+    if(del_cmp(1) > 0.055) // 0.065
+    {
+      del_zmp(1) = 0.055;
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg
+    }
+    else if(del_cmp(1) <= 0.055 && del_cmp(1) > -0.055)
+    {
+      del_zmp(1) = del_cmp(1);
+      del_ang_acc_(1) = (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14));
+      mode = 1;
+    }
+    else if(del_cmp(1) < -0.055)
+    {
+      del_zmp(1) = -0.055;
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14)); // J 일단 아무값
+    }
+    MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << endl;
+    if(del_ang_acc_(1) > 500.0/180.0*M_PI)
+    {
+      del_ang_acc_(1) = 500/180.0*M_PI;
+    }
+    else if(del_ang_acc_(1) < -500.0/180.0*M_PI)
+    {
+      del_ang_acc_(1) = -500.0/180.0*M_PI;
+    }
+
+    del_ang_vel_ = del_ang_vel_prev_ + del_t * del_ang_acc_;
+
+    if(del_ang_vel_(1) > 200.0/180.0*M_PI)
+    {
+      del_ang_vel_(1) = 200.0/180.0*M_PI;
+    }
+    else if(del_ang_vel_(1) < -200.0/180.0*M_PI)
+    {
+      del_ang_vel_(1) = -200.0/180.0*M_PI;
+    }
+
+    del_angle_ = del_angle_prev_ + del_t * del_ang_vel_;
+
+    if(del_angle_(1) > 20.0/180.0*M_PI)
+    {
+      del_angle_(1) = 20.0/180.0*M_PI;
+    }
+    else if(del_angle_(1) < -20.0/180.0*M_PI)
+    {
+      del_angle_(1) = -20.0/180.0*M_PI;
+    }
+
+    //MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 0.1 << "," << (10*(0 - rd_.q_(14)) - 0.1*rd_.q_dot_(14)) << endl; 
 
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
      
@@ -2960,7 +3031,7 @@ void CustomController::CP_compen_MJ_FT()
   else if(F_T_R_y_input < -0.15)
   { F_T_R_y_input = -0.15; }
 
-  MJ_graph << cp_measured_(0) << "," << cp_desired_(0) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << del_zmp(0) << "," << del_zmp(1) << endl;
+  //MJ_graph << cp_measured_(0) << "," << cp_desired_(0) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << del_zmp(0) << "," << del_zmp(1) << endl;
   //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
   //MJ_graph << alpha << "," << alpha_new << endl;
   //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
@@ -2968,6 +3039,7 @@ void CustomController::CP_compen_MJ_FT()
   //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }
+
 void CustomController::updateInitialStateJoy()
 {
   if(walking_tick_mj == 0)

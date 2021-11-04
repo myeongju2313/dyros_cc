@@ -100,6 +100,14 @@ public:
 
   Eigen::Isometry3d pelv_support_start_;
   Eigen::Isometry3d pelv_support_init_;
+  Eigen::Vector2d del_cmp;
+  Eigen::Vector2d del_ang_acc_;
+  Eigen::Vector2d del_ang_acc_prev_;
+  Eigen::Vector2d del_ang_vel_;
+  Eigen::Vector2d del_ang_vel_prev_;
+  Eigen::Vector2d del_angle_;
+  Eigen::Vector2d del_angle_prev_;
+
   Eigen::Vector2d del_zmp;
   Eigen::Vector2d cp_desired_;
   Eigen::Vector2d cp_measured_;
