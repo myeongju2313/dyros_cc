@@ -1951,22 +1951,22 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     del_ang_vel_prev_ = del_ang_vel_;
     del_angle_prev_ = del_angle_; 
     unsigned int mode = 0;
-
+    
     if(del_cmp(1) > 0.055) // 0.065
     {
       del_zmp(1) = 0.055;
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg
     }
     else if(del_cmp(1) <= 0.055 && del_cmp(1) > -0.055)
     {
       del_zmp(1) = del_cmp(1);
-      del_ang_acc_(1) = (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14));
+      del_ang_acc_(1) = (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14));
       mode = 1;
     }
     else if(del_cmp(1) < -0.055)
     {
       del_zmp(1) = -0.055;
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 2.5*rd_.q_dot_(14)); // J 일단 아무값
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // J 일단 아무값
     }
     MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << endl;
     if(del_ang_acc_(1) > 500.0/180.0*M_PI)
