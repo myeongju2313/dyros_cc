@@ -1954,8 +1954,8 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     
     if(del_cmp(1) > 0.055) // 0.065
     {
-      del_zmp(1) = 0.055;
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg
+      del_zmp(1) = 0.055; 
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg // J = 2.3
     }
     else if(del_cmp(1) <= 0.055 && del_cmp(1) > -0.055)
     {
@@ -1966,9 +1966,9 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     else if(del_cmp(1) < -0.055)
     {
       del_zmp(1) = -0.055;
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // J 일단 아무값
+      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); 
     }
-    MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << endl;
+    MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
     if(del_ang_acc_(1) > 500.0/180.0*M_PI)
     {
       del_ang_acc_(1) = 500/180.0*M_PI;
