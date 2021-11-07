@@ -1939,8 +1939,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     {
       del_ang_acc_.setZero();
       del_ang_vel_.setZero();
-      del_angle_.setZero();
-      del_ang_acc_prev_.setZero();
+      del_angle_.setZero(); 
       del_ang_vel_prev_.setZero();
       del_angle_prev_.setZero(); 
     }    
@@ -1950,6 +1949,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     del_ang_vel_prev_ = del_ang_vel_;
     del_angle_prev_ = del_angle_; 
+
     unsigned int mode = 0;
     
     if(del_cmp(1) > 0.055) // 0.065
