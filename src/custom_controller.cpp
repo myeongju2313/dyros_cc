@@ -823,7 +823,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 20; //
+    middle_total_step_number = 10; //
     dlength = 0;
   }
 
@@ -1968,7 +1968,7 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
       del_zmp(1) = -0.055;
       del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); 
     }
-    MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
+    //MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
     if(del_ang_acc_(1) > 500.0/180.0*M_PI)
     {
       del_ang_acc_(1) = 500/180.0*M_PI;
@@ -2372,7 +2372,7 @@ void CustomController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 0.8*hz_;
 
-    t_temp_ = 4.0*hz_;
+    t_temp_ = 2.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
     t_start_ = t_temp_ + 1 ;
     t_start_real_ = t_start_ + t_rest_init_;
@@ -2923,7 +2923,7 @@ void CustomController::CP_compen_MJ_FT()
 
   F_R = -(1 - alpha) * rd_.com_.mass * GRAVITY;
   F_L = -alpha * rd_.com_.mass * GRAVITY; // alpha가 0~1이 아니면 desired force가 로봇 무게보다 계속 작게나와서 지면 반발력을 줄이기위해 다리길이를 줄임.
-
+   
   if(walking_tick_mj == 0)
   { F_F_input = 0.0; F_T_L_x_input = 0.0; F_T_R_x_input = 0.0; F_T_L_y_input = 0.0; F_T_R_y_input = 0.0; }
   //////////// Force
@@ -3009,7 +3009,7 @@ void CustomController::CP_compen_MJ_FT()
   //F_T_L_y_input = 0;
   F_T_R_y_input_dot = 0.2*(Tau_R_y - r_ft_LPF(4)) - Kr_pitch*F_T_R_y_input; 
   F_T_R_y_input = F_T_R_y_input + F_T_R_y_input_dot*del_t;
-  //F_T_R_y_input = 0;
+  //F_T_R_y_input = 0; 
   
   if(F_T_L_x_input >= 0.15) // 8.5 deg limit
   { F_T_L_x_input = 0.15; }
@@ -3039,7 +3039,36 @@ void CustomController::CP_compen_MJ_FT()
   //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
   //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
 }
+/*
+void WalkingController::UpdateCentroidalMomentumMatrix()
+ {
+     Eigen::Matrix<double, DyrosJetModel::MODEL_WITH_VIRTUAL_DOF, 1> q_temp, qdot_temp;
+     q_temp.setZero();
+     qdot_temp.setZero();
 
+     //q_temp.segment<12>(6) = desired_q_not_compensated_.segment<12>(0);
+     //if(walking_tick_ == 0)
+     { q_temp.segment<28>(6) = current_q_.segment<28>(0); }
+
+     Eigen::Matrix<double, 3, 28> LMM_rbdl;
+     Eigen::Matrix<double, 3, 28> AMM_rbdl;
+
+     for(int i=0;i<28;i++)
+     {
+         qdot_temp.setZero();
+         qdot_temp(6+i) = 1.0;
+
+         model_.updateKinematics(q_temp,qdot_temp);
+
+         LMM_rbdl.col(i) = model_.getCurrentComLinearMomentum();
+         AMM_rbdl.col(i) = model_.getCurrentComAngularMomentum();
+     }
+      
+      Augmented_Centroidal_Momentum_Matrix_.block<3,28>(0,0) = LMM_rbdl;
+      Augmented_Centroidal_Momentum_Matrix_.block<3,28>(3,0) = AMM_rbdl;
+
+ }
+*/
 void CustomController::updateInitialStateJoy()
 {
   if(walking_tick_mj == 0)
