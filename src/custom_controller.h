@@ -37,7 +37,7 @@ public:
   void supportToFloatPattern();
   void floatToSupportFootstep();
   void GravityCalculate_MJ();
- 
+  
   void getZmpTrajectory();
   void zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num);
   void onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py);
@@ -51,7 +51,10 @@ public:
   void hip_compensator();
   void Compliant_control(Eigen::Vector12d desired_leg_q);
   
+  void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
   void SC_err_compen(double x_des, double y_des);
+
+  void updateCMM_MJ();
 
   void CP_compen_MJ();
   void CP_compen_MJ_FT();
@@ -154,7 +157,7 @@ public:
   Eigen::Vector12d sc_joint_err;
 
   double walking_end_flag = 0;
-  
+  unsigned int mjcnt = 0;
   Eigen::Isometry3d supportfoot_float_current_; 
 
   Eigen::Isometry3d pelv_support_current_;

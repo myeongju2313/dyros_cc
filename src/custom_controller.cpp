@@ -1,5 +1,7 @@
  #include "custom_controller.h"
 #include <fstream>
+#include <rbdl/rbdl.h>
+#include <rbdl/addons/urdfreader/urdfreader.h>
 
 CustomController::CustomController(DataContainer &dc, RobotData &rd) : dc_(dc), rd_(rd), wbc_(dc.wbc_)
 {
@@ -15,7 +17,7 @@ void CustomController::taskCommandToCC(TaskCommand tc_)
 {
     tc = tc_;
 }
-
+  
 void CustomController::PedalCommandCallback(const dyros_pedal::WalkingCommandConstPtr &msg){
 
   if(joy_input_enable_ == true){
@@ -63,8 +65,10 @@ void CustomController::computeSlow()
             walking_tick_mj = 0;
             walking_end_flag = 0;
             cout << "mode = 10" << endl;
-        }
-
+        }  
+        
+        updateCMM_MJ();
+         
         wbc_.set_contact(rd_, 1, 1);  
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
           
@@ -113,7 +117,7 @@ void CustomController::computeSlow()
               for(int i = 0; i < 12; i ++)
               { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
             }
-
+            //updateCMM_MJ();
             CP_compen_MJ();
             CP_compen_MJ_FT();
             for(int i = 0; i < MODEL_DOF; i++)
@@ -122,7 +126,7 @@ void CustomController::computeSlow()
               // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
               if(i == 14)
               {
-                ControlVal_(i) = Kp(i) * (ref_q_(i) + del_angle_(1) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ; 
+                ControlVal_(i) = Kp(i) * (ref_q_(i) + 0*del_angle_(1) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ; 
               }
             }               
                         
@@ -251,10 +255,12 @@ void CustomController::computeSlow()
 void CustomController::computeFast()
 {
     if (tc.mode == 10)
-    {
+    { 
+
     }
     else if (tc.mode == 11)
-    {
+    { 
+
     }
 }
 
@@ -1883,12 +1889,19 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     
     double sum_Gd_px_ref = 0, sum_Gd_py_ref = 0;
 
+    std::chrono::steady_clock::time_point preview1 = std::chrono::steady_clock::now();
     for(int i = 0; i < NL; i++)
     {
         sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(px_ref(tick + 1 + i) - px_ref(tick + i));
         sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(py_ref(tick + 1 + i) - py_ref(tick + i));
     }
-    
+    std::chrono::steady_clock::time_point preview2 = std::chrono::steady_clock::now();
+
+    MJ_graph << com_desired_(1) << endl;
+    if(int(walking_tick_mj) % 1000 == 0)
+    {
+      cout<<"preview calculation time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(preview2 - preview1).count() <<endl;
+    }
     Eigen::MatrixXd del_ux(1,1);
     Eigen::MatrixXd del_uy(1,1);
     del_ux.setZero();
@@ -2056,9 +2069,17 @@ void CustomController::getPelvTrajectory()
 {
   double z_rot = foot_step_support_frame_(current_step_num_,5);
   
+  double pelv_transition_time = 2.0;
+  double pelv_height_offset_ = 0.0;
+  if (walking_enable_ == true)
+  {
+    pelv_height_offset_ = DyrosMath::cubic(walking_tick_mj, 0, pelv_transition_time * hz_, 0.0, 0.05, 0.0, 0.0);
+  }
+
   pelv_trajectory_support_.translation()(0) = pelv_support_current_.translation()(0) + 0.7*(com_desired_(0) - 0.15*damping_x - com_support_current_(0));//- 0.01 * zmp_err_(0) * 0;
   pelv_trajectory_support_.translation()(1) = pelv_support_current_.translation()(1) + 0.7*(com_desired_(1) - 0.6*damping_y - com_support_current_(1)) ;//- 0.01 * zmp_err_(1) * 0;
-  pelv_trajectory_support_.translation()(2) = com_desired_(2);
+  //pelv_trajectory_support_.translation()(2) = com_desired_(2);
+  pelv_trajectory_support_.translation()(2) = com_desired_(2) - 0*pelv_height_offset_;
   // MJ_graph << com_desired_(0) << "," << com_support_current_(0) << "," << com_desired_(1) << "," << com_support_current_(1) << endl;
   Eigen::Vector3d Trunk_trajectory_euler;
   Trunk_trajectory_euler.setZero();
@@ -2130,7 +2151,8 @@ void CustomController::getComTrajectory()
   { zmp_start_time_ = 0.0; }
   else
   { zmp_start_time_ = t_start_; }
-       
+
+  //if(walking_tick_mj )     
   previewcontroller(0.0005, 3200, walking_tick_mj - zmp_start_time_, xi_, yi_, xs_, ys_, UX_, UY_, Gi_, Gd_, Gx_, A_, B_, C_, xd_, yd_);
    
   xs_ = xd_; ys_ = yd_;
@@ -2349,7 +2371,7 @@ void CustomController::parameterSetting()
     target_z_ = 0.0;
     com_height_ = 0.71;
     target_theta_ = 0.0;
-    step_length_x_ = 0.10;
+    step_length_x_ = 0.1;
     step_length_y_ = 0.0;
     is_right_foot_swing_ = 1;
 
@@ -2370,9 +2392,9 @@ void CustomController::parameterSetting()
     // t_rest_last_ = 0.12*hz_;  
     // t_double1_ = 0.03*hz_;
     // t_double2_ = 0.03*hz_;
-    // t_total_= 0.8*hz_;
+    // t_total_= 0.9*hz_;
 
-    t_temp_ = 2.0*hz_;
+    t_temp_ = 3.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
     t_start_ = t_temp_ + 1 ;
     t_start_real_ = t_start_ + t_rest_init_;
@@ -3029,46 +3051,151 @@ void CustomController::CP_compen_MJ_FT()
   if(F_T_R_y_input >= 0.15) // 8.5 deg limit
   { F_T_R_y_input = 0.15; }
   else if(F_T_R_y_input < -0.15)
-  { F_T_R_y_input = -0.15; }
+  { F_T_R_y_input = -0.15; } 
 
-  //MJ_graph << cp_measured_(0) << "," << cp_desired_(0) << "," << cp_measured_(1) << "," << cp_desired_(1) << "," << del_zmp(0) << "," << del_zmp(1) << endl;
-  //cout << F_T_R_x_input*180/3.141592 << "," << F_T_L_x_input*180/3.141592 << "," << Tau_R_x << "," << Tau_L_x << "," << r_ft_(3) << "," << l_ft_(3) << endl;
-  //MJ_graph << alpha << "," << alpha_new << endl;
-  //MJ_graph << rfoot_support_current_.translation()(1) << "," << lfoot_support_current_.translation()(1) << "," << ZMP_Y_REF << "," << Tau_R_y << "," << Tau_L_y << endl;
-  //MJ_graph << Tau_L_x << "," << Tau_R_x << "," << l_ft_(4) << "," << F_F_input << "," << l_ft_LPF(4) << "," << r_ft_LPF(4) << "," << F_T_L_x_input << "," << F_T_R_x_input << endl;
-  //MJ_graph << ZMP_Y_REF << "," << alpha << "," << ZMP_Y_REF_alpha << endl;
-  //MJ_graph << Tau_all_y << "," << Tau_L_y << "," << Tau_R_y << "," << l_ft_(4) << "," << r_ft_(4) << "," << cp_measured_(0) << "," << cp_desired_(0) << endl;
-}
-/*
-void WalkingController::UpdateCentroidalMomentumMatrix()
- {
-     Eigen::Matrix<double, DyrosJetModel::MODEL_WITH_VIRTUAL_DOF, 1> q_temp, qdot_temp;
-     q_temp.setZero();
-     qdot_temp.setZero();
+  }
 
-     //q_temp.segment<12>(6) = desired_q_not_compensated_.segment<12>(0);
-     //if(walking_tick_ == 0)
-     { q_temp.segment<28>(6) = current_q_.segment<28>(0); }
+void CustomController::updateCMM_MJ()
+{ 
+    //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
+    /* q_virtual description
+   * 0 ~ 2 : XYZ cartesian coordinates
+   * 3 ~ 5 : XYZ Quaternion
+   * 6 ~ MODEL_DOF + 5 : joint position
+   * model dof + 6 ( last component of q_virtual) : w of Quaternion
+   * */    
+     /*
+    double com_mass;
+    RigidBodyDynamics::Math::Vector3d com_pos;
+    RigidBodyDynamics::Math::Vector3d com_vel, com_accel, com_ang_momentum, com_ang_moment;
+    //Eigen::Vector3d com_pos;
+    //Eigen::Vector3d com_vel, com_accel, com_ang_momentum, com_ang_moment;
+    //mtx_rbdl.lock();
+    //RigidBodyDynamics::UpdateKinematicsCustom(model_l, &q_virtual_f, &q_dot_virtual_f, &q_ddot_virtual_f);
+    //mtx_rbdl.unlock();
+    Eigen::VectorQVQd q_cm;
+    Eigen::VectorVQd q_dot_cm;
+    Eigen::VectorXd q_ddot_cm;
 
-     Eigen::Matrix<double, 3, 28> LMM_rbdl;
-     Eigen::Matrix<double, 3, 28> AMM_rbdl;
+    q_cm.setZero();
+    q_cm.segment(6, MODEL_DOF) = rd_.q_;
+    q_cm(MODEL_DOF_VIRTUAL) = 1.0;
+ 
+    q_ddot_cm.resize(MODEL_DOF_VIRTUAL);
+    q_ddot_cm.setZero(MODEL_DOF_VIRTUAL);
 
-     for(int i=0;i<28;i++)
-     {
-         qdot_temp.setZero();
-         qdot_temp(6+i) = 1.0;
+    //Eigen::Matrix<double, 3, MODEL_DOF> LMM_rbdl;
+    Eigen::Matrix<double, 3, MODEL_DOF> CMM_Ang;
 
-         model_.updateKinematics(q_temp,qdot_temp);
+    Eigen::Vector2d t_cmm;
+     std::chrono::steady_clock::time_point tcc[2];
+     std::chrono::duration<double> td[1];
 
-         LMM_rbdl.col(i) = model_.getCurrentComLinearMomentum();
-         AMM_rbdl.col(i) = model_.getCurrentComAngularMomentum();
-     }
+    tcc[0] = std::chrono::steady_clock::now(); 
+
+    for(int i = 12; i < 13; i++)
+    {
+      q_dot_cm.setZero();
+      q_dot_cm(6+i) = 1.00;
+
+      RigidBodyDynamics::Utils::CalcCenterOfMass(rd_.model_virtual_2, q_cm, q_dot_cm, &q_ddot_cm, com_mass, com_pos, &com_vel, &com_accel, &com_ang_momentum, &com_ang_moment, true);
       
-      Augmented_Centroidal_Momentum_Matrix_.block<3,28>(0,0) = LMM_rbdl;
-      Augmented_Centroidal_Momentum_Matrix_.block<3,28>(3,0) = AMM_rbdl;
+      CMM_Ang.col(i) = com_ang_momentum;
+      //LMM_rbdl.col(i) = model_.getCurrentComLinearMomentum();
+      //AMM_rbdl.col(i) = model_.getCurrentComAngularMomentum();
+    }
 
- }
-*/
+    tcc[1] = std::chrono::steady_clock::now();   
+    td[0] = tcc[1] - tcc[0];
+    if((mjcnt % 2000) == 0)
+    {
+      //std::cout << CMM_Ang << "," << mjcnt/2000 << "," << td[0].count() << endl; 
+      std::cout << td[0].count() << endl; 
+    }
+    mjcnt ++;
+    
+    //CalcCenterOfMass (model, q, VectorNd::Zero (model.qdot_size), mass, com, NULL, NULL, update_kinematics);     
+
+    */
+
+       ////////////////////////////////////////////////////////////////////////
+    // 2. 실제 사용 및 디버깅 코드
+    RigidBodyDynamics::Math::Vector3d com_pos_test, com_vel_test, com_accel_test, com_ang_momentum_test, com_ang_moment_test;
+    Eigen::VectorXd q_test, q_dot_test, q_ddot_test;
+    q_test = rd_.q_virtual_;  
+    // modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame 
+    Eigen::Vector6d base_velocity;
+    base_velocity = rd_.q_dot_virtual_.segment(0, 6);
+    base_velocity.segment(0, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(0, 3);
+    base_velocity.segment(3, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(3, 3);
+  
+    q_test.segment(0, 6).setZero();
+    q_test(39) = 1;
+    q_dot_test = rd_.q_dot_virtual_;
+    q_dot_test.segment(0, 6) = base_velocity;
+    ///////////////////////////////////////////
+
+    q_ddot_test.setZero(MODEL_DOF_VIRTUAL);
+    
+    //RigidBodyDynamics::Utils::CalcCenterOfMass(model_C_, q_test, q_dot_test, &q_ddot_test, rd_.link_[COM_id].mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
+   // RigidBodyDynamics::Utils::CalcCenterOfMass(rd_.model_virtual_2, q_test, q_dot_test, &q_ddot_test, rd_.com_.mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
+    
+    std::chrono::steady_clock::time_point cmm1 = std::chrono::steady_clock::now();
+    Eigen::MatrixXd mass_matrix_temp;
+    Eigen::MatrixXd cmm;
+    mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
+    cmm.setZero(3, MODEL_DOF);
+    //RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_C_, q_test, mass_matrix_temp, true);
+    RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, true);
+    std::chrono::steady_clock::time_point cmm2 = std::chrono::steady_clock::now();
+    getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
+    std::chrono::steady_clock::time_point cmm3 = std::chrono::steady_clock::now();
+
+    if( int( walking_tick_mj)%1000 == 0)
+    {
+    //     cout<<"mass_matrix_temp: \n"<< mass_matrix_temp <<endl;
+
+    //     cout<<"com_ang_momentum_temp: "<<com_ang_momentum_test.transpose()<<endl;
+    //     cout<<"IC*wb + CMM*qdot: "<< ( mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3)+ cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
+    //     cout<<"AM error: " << (com_ang_momentum_test - mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) - cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
+           //cout<<"AM RBDL " << (com_ang_momentum_test).transpose()  <<endl;
+           cout<<"AM DG " << (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() << endl;
+
+    //     cout<<"com_lin_vel: "<<com_vel_test.transpose()<<endl;
+    //     cout<<"J_com*qdot: " << (mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) + base_velocity.segment(0, 3)).transpose() <<endl; // <- this is not correct. Shoud consider ang vel of base frame
+    //     cout<<"LM error: " << (com_vel_test - mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) - base_velocity.segment(0, 3)).transpose() <<endl;
+          
+           cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() <<endl;
+    }
+}
+
+ 
+
+void CustomController::getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM)
+{   // 1. CMM 계산 함수.
+    //reference: Cavenago, et.al "Contact force observer for space robots." 2019 IEEE 58th Conference on Decision and Control (CDC). IEEE, 2019.
+    // mass_matrix: inertia matrix expressed in the base frame
+    // Using this CMM, calculation error of the angular velocity occurs in second decimal place with respect to the rbdl CalcCenterOfMass() function when tocabi is walking in place.
+    // Calculation Time : 3~4us
+    const int joint_dof = MODEL_DOF;
+    double mass = mass_matrix(0, 0);
+    MatrixXd M_r = mass_matrix.block(3, 3, 3, 3);
+    MatrixXd M_t = mass_matrix.block(0, 0, 3, 3);
+    MatrixXd M_tr = mass_matrix.block(0, 3, 3, 3);
+    MatrixXd M_rt = mass_matrix.block(3, 0, 3, 3);
+    MatrixXd M_rm = mass_matrix.block(3, 6, 3, MODEL_DOF);
+    MatrixXd M_tm = mass_matrix.block(0, 6, 3, MODEL_DOF);
+    MatrixXd J_w;
+    J_w.setZero(3, MODEL_DOF);
+    J_w = (M_r - (M_rt*M_tr)/mass).inverse()*(M_rm - (M_rt*M_tm)/mass);
+    // MatrixXd CMM;
+    CMM.setZero(3, MODEL_DOF);
+    CMM = M_r*J_w;
+
+    // return CMM;   
+
+}
+
 void CustomController::updateInitialStateJoy()
 {
   if(walking_tick_mj == 0)
