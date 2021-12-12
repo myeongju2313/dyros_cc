@@ -67,7 +67,7 @@ void CustomController::computeSlow()
             cout << "mode = 10" << endl;
         }  
         
-        updateCMM_MJ();
+        
          
         wbc_.set_contact(rd_, 1, 1);  
         Gravity_MJ_ = wbc_.gravity_compensation_torque(rd_);
@@ -117,7 +117,11 @@ void CustomController::computeSlow()
               for(int i = 0; i < 12; i ++)
               { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
             }
-            //updateCMM_MJ();
+            
+            if((int)walking_tick_mj % 10 == 0) // model update 안하면 500Hz도 됨.
+            {
+              updateCMM_MJ();
+            } 
             CP_compen_MJ();
             CP_compen_MJ_FT();
             for(int i = 0; i < MODEL_DOF; i++)
@@ -260,7 +264,11 @@ void CustomController::computeFast()
     }
     else if (tc.mode == 11)
     { 
-
+      // if((int)walking_tick_mj % 10 == 0)
+      // {
+      //   updateCMM_MJ();
+      // }
+      // updateCMM_MJ();      
     }
 }
 
@@ -1346,15 +1354,16 @@ void CustomController::getZmpTrajectory()
 void CustomController::zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num)
 {
   ref_zmp_.resize(norm_size, 2);
+  ref_zmp_mj_.resize(int(norm_size/2), 2);
   Eigen::VectorXd temp_px;
   Eigen::VectorXd temp_py;
  
   unsigned int index = 0;
   // 매 tick 마다 zmp가 3발 앞까지 계산 된다.
 
-  if(current_step_num_ == 0) // Walking을 수행 할 때, 정지 상태 일때 3초 동안 Ref X ZMP를 0으로 보냄. Y ZMP는 제자리 유지.  
+  if(current_step_num_ == 0) // Walking 할 때, 정지 상태 일때 3초 동안 Ref X ZMP를 0으로 보냄. Y ZMP는 제자리 유지.  
   {
-    for (int i = 0; i <= t_temp_; i++) //600 tick
+    for (int i = 0; i <= t_temp_; i++) // 2000 Hz * 3.0 s
     {
       if(i < 1.0*hz_)
       {
@@ -1402,15 +1411,16 @@ void CustomController::zmpGenerator(const unsigned int norm_size, const unsigned
     for(unsigned int i = current_step_num_; i < current_step_num_ + planning_step_num; i++)  
     {
       onestepZmp(i, temp_px, temp_py);
-      for (unsigned int j = 0; j < t_total_; j++) // 1 step 보행은 1.2초, 240 tick
+      for (unsigned int j = 0; j < t_total_; j++) // 1 step 보행은 1.1초, 2200 tick
       {
         ref_zmp_(index+j,0) = temp_px(j);
         ref_zmp_(index+j,1) = temp_py(j);
       }      
-      index = index + t_total_; // 참조 zmp가 이만큼 쌓였다.      
-      // 결국 실제 로봇 1Hz마다 720개의 ref_zmp를 생성함. 3.6초
+      index = index + t_total_; // 참조 zmp가 이만큼 쌓였다.
+
     }   
-  }   
+  }
+  
 }
 /*
 void CustomController::onestepZmp(unsigned int current_step_number, Eigen::VectorXd& temp_px, Eigen::VectorXd& temp_py)
@@ -1771,7 +1781,24 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
     Q_bar(0,0) = Qe(0,0);
 
     Eigen::Matrix4d K;
-    
+    // 1KHz
+    // K(0,0) = 543.3569;
+    // K(0,1) = 147346.6788279582;  
+    // K(0,2) = 39716.88739798;
+    // K(0,3) = 20.657133628926964;
+    // K(1,0) = K(0,1);
+    // K(1,1) = 40344946.41097678;
+    // K(1,2) = 10875694.35947079;
+    // K(1,3) = 5878.44034129689;
+    // K(2,0) = K(0,2);
+    // K(2,1) = K(1,2);
+    // K(2,2) = 2931740.223966234;
+    // K(2,3) = 1585.807629630721;
+    // K(3,0) = K(0,3);
+    // K(3,1) = K(1,3);
+    // K(3,2) = K(2,3);
+    // K(3,3) = 1.174987794480028;
+
     K(0,0) = 1083.572780788710;
     K(0,1) = 586523.188429418020;  
     K(0,2) = 157943.283121116518;
@@ -1808,9 +1835,15 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
     Ac_bar_tran = Ac_bar.transpose();
     
     Gi.resize(1,1); Gx.resize(1,3);
-    Gi(0,0) = 872.3477 ; //Temp_mat_inv * B_bar_tran * K * I_bar ;
+    // Gi(0,0) = 823.2477099759453;
+    Gi(0,0) = 872.3477 ; //Temp_mat_inv * B_bar_tran * K * I_bar ; // 2KHz 
     //Gx = Temp_mat_inv * B_bar_tran * K * F_bar ;  
-    Gx(0,0) = 945252.1760702;
+    
+    // Gx(0,0) = 447317.31936212;
+    // Gx(0,1) = 121750.13339183;
+    // Gx(0,2) = 383.0637197317864;
+
+    Gx(0,0) = 945252.1760702; // 2KHz
     Gx(0,1) = 256298.6905049;
     Gx(0,2) = 542.0544196;
     Eigen::MatrixXd X_bar;
@@ -1842,28 +1875,33 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
        Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD)
 {
     
-    int zmp_size;
-    zmp_size = ref_zmp_.col(1).size();
-    Eigen::VectorXd px_ref, py_ref;
-    px_ref.resize(zmp_size);
-    py_ref.resize(zmp_size);
-    
-    for(int i = 0; i < zmp_size; i++)
-    {
-        px_ref(i) = ref_zmp_(i,0);
-        py_ref(i) = ref_zmp_(i,1);
-    }
+    // int zmp_size;
+    //zmp_size = ref_zmp_.col(1).size();
+    // Eigen::VectorXd px_ref, py_ref;
+    // px_ref.resize(zmp_size);
+    // py_ref.resize(zmp_size); 
+ 
+     
+    //for(int i = 0; i < zmp_size; i++) // 1KHz Preview에서 2배 Size 가짐. 계산시간이 엄청걸림.
+    //{    
+        //px_ref(i) = ref_zmp_(i,0);
+        //py_ref(i) = ref_zmp_(i,1);
+    //}
+ 
+    //ZMP_X_REF = px_ref(tick);
+    //ZMP_Y_REF = py_ref(tick);
+    ZMP_X_REF = ref_zmp_(tick,0);
+    ZMP_Y_REF = ref_zmp_(tick,1); 
 
-    ZMP_X_REF = px_ref(tick);
-    ZMP_Y_REF = py_ref(tick);
-        
     Eigen::VectorXd px, py;
     px.resize(1); py.resize(1);
     
     if(tick == 0 && current_step_num_ == 0)
     {
-        preview_x_b.setZero(); preview_y_b.setZero();
-        preview_x.setZero(); preview_y.setZero();
+        preview_x_b.setZero(); 
+        preview_y_b.setZero();
+        preview_x.setZero(); 
+        preview_y.setZero();
         preview_x_b(0) = x_i;  
         preview_y_b(0) = y_i;   
         preview_x(0) = x_i;
@@ -1876,12 +1914,12 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     {     
         preview_x = xs; preview_y = ys;
             
-        preview_x_b(0) = preview_x(0) - preview_x(1)*0.0005;  
-        preview_y_b(0) = preview_y(0) - preview_y(1)*0.0005;
-        preview_x_b(1) = preview_x(1) - preview_x(2)*0.0005;
-        preview_y_b(1) = preview_y(1) - preview_y(2)*0.0005;
-        preview_x_b(2) = preview_x(2) - UX*0.0005;
-        preview_y_b(2) = preview_y(2) - UY*0.0005;
+        preview_x_b(0) = preview_x(0) - preview_x(1)*dt;  
+        preview_y_b(0) = preview_y(0) - preview_y(1)*dt;
+        preview_x_b(1) = preview_x(1) - preview_x(2)*dt;
+        preview_y_b(1) = preview_y(1) - preview_y(2)*dt;
+        preview_x_b(2) = preview_x(2) - UX*dt;
+        preview_y_b(2) = preview_y(2) - UY*dt;
         
     }      
     px = C*preview_x;
@@ -1889,18 +1927,21 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     
     double sum_Gd_px_ref = 0, sum_Gd_py_ref = 0;
 
-    std::chrono::steady_clock::time_point preview1 = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point preview2 = std::chrono::steady_clock::now();
     for(int i = 0; i < NL; i++)
     {
-        sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(px_ref(tick + 1 + i) - px_ref(tick + i));
-        sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(py_ref(tick + 1 + i) - py_ref(tick + i));
+        // sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(ref_zmp_(tick + 2 + 2*i,0) - ref_zmp_(tick + 2*i,0));
+        // sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(ref_zmp_(tick + 2 + 2*i,1) - ref_zmp_(tick + 2*i,1));
+        sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(ref_zmp_(tick + 1 + i,0) - ref_zmp_(tick + i,0));
+        sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(ref_zmp_(tick + 1 + i,1) - ref_zmp_(tick + i,1));
     }
-    std::chrono::steady_clock::time_point preview2 = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point preview3 = std::chrono::steady_clock::now();
 
-    MJ_graph << com_desired_(1) << endl;
-    if(int(walking_tick_mj) % 1000 == 0)
+    //cout << "2:" <<  (walking_tick_mj - zmp_start_time_)/1000.0 << "," << tick << endl;
+    //MJ_graph << ref_zmp_(tick,1) << "," << com_desired_(1) << "," << py << endl;
+    if(int(walking_tick_mj) % 500 == 0)
     {
-      cout<<"preview calculation time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(preview2 - preview1).count() <<endl;
+      cout<<"preview time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(preview3 - preview2).count() << endl;
     }
     Eigen::MatrixXd del_ux(1,1);
     Eigen::MatrixXd del_uy(1,1);
@@ -1917,25 +1958,15 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
       del_zmp.setZero(); cout << "del_zmp : " << del_zmp(0) << "," << del_zmp(1) << endl;
     }
     
-    del_ux(0,0) = -(px(0) - px_ref(tick))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
-    del_uy(0,0) = -(py(0) - py_ref(tick))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
+    del_ux(0,0) = -(px(0) - ref_zmp_(tick,0))*Gi(0,0) - GX_X(0) - sum_Gd_px_ref;
+    del_uy(0,0) = -(py(0) - ref_zmp_(tick,1))*Gi(0,0) - GX_Y(0) - sum_Gd_py_ref;
     
     UX = UX + del_ux(0,0);
     UY = UY + del_uy(0,0);
 
     XD = A*preview_x + B*UX;
     YD = A*preview_y + B*UY;
-    //SC_err_compen(XD(0), YD(0));
-    if(walking_tick_mj == 0)
-    {      
-      zmp_err_(0) = 0;
-      zmp_err_(1) = 0;
-    }
-    else
-    {
-      zmp_err_(0) = zmp_err_(0) + (px_ref(tick) - zmp_measured_LPF_(0))*0.0005;
-      zmp_err_(1) = zmp_err_(1) + (py_ref(tick) - zmp_measured_LPF_(1))*0.0005;
-    }    
+    //SC_err_compen(XD(0), YD(0)); 
 
     cp_desired_(0) = XD(0) + XD(1)/wn;
     cp_desired_(1) = YD(0) + YD(1)/wn;
@@ -2139,8 +2170,10 @@ void CustomController::getComTrajectory()
 {
   if(walking_tick_mj == 0)  
   {
+    const double hz_temp_ = 1000.0;
     Gi_.setZero(); Gx_.setZero(); Gd_.setZero();
     preview_Parameter(1.0/hz_, 16*hz_/10, Gi_, Gd_, Gx_, A_, B_, C_);
+    // preview_Parameter(1.0/hz_temp_, 1.6*hz_temp_, Gi_, Gd_, Gx_, A_, B_, C_);
     xs_(0) = xi_; xs_(1) = 0; xs_(2) = 0;
     ys_(0) = yi_; ys_(1) = 0; xs_(2) = 0;
     UX_ = 0; UY_ = 0;
@@ -2151,8 +2184,12 @@ void CustomController::getComTrajectory()
   { zmp_start_time_ = 0.0; }
   else
   { zmp_start_time_ = t_start_; }
-
-  //if(walking_tick_mj )     
+   
+  // if(int(walking_tick_mj)%2 == 0 )
+  // { 
+  //   previewcontroller(0.001, 1600.0, walking_tick_mj - zmp_start_time_, xi_, yi_, xs_, ys_, UX_, UY_, Gi_, Gd_, Gx_, A_, B_, C_, xd_, yd_);
+  //   xs_ = xd_; ys_ = yd_;
+  // }     
   previewcontroller(0.0005, 3200, walking_tick_mj - zmp_start_time_, xi_, yi_, xs_, ys_, UX_, UY_, Gi_, Gd_, Gx_, A_, B_, C_, xd_, yd_);
    
   xs_ = xd_; ys_ = yd_;
@@ -2386,7 +2423,7 @@ void CustomController::parameterSetting()
     t_rest_last_ = 0.17*hz_;  
     t_double1_ = 0.03*hz_;
     t_double2_ = 0.03*hz_;
-    t_total_= 1.1*hz_;
+    t_total_= 1.0*hz_;
 
     // t_rest_init_ = 0.12*hz_;
     // t_rest_last_ = 0.12*hz_;  
@@ -2394,13 +2431,13 @@ void CustomController::parameterSetting()
     // t_double2_ = 0.03*hz_;
     // t_total_= 0.9*hz_;
 
-    t_temp_ = 3.0*hz_;
+    t_temp_ = 2.0*hz_;
     t_last_ = t_total_ + t_temp_ ;
     t_start_ = t_temp_ + 1 ;
     t_start_real_ = t_start_ + t_rest_init_;
 
     current_step_num_ = 0;
-    foot_height_ = 0.055; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
+    foot_height_ = 0.05; // 실험 제자리 0.04 , 전진 0.05 시뮬 0.04
 }
 
 void CustomController::updateNextStepTime()
@@ -3057,67 +3094,8 @@ void CustomController::CP_compen_MJ_FT()
 
 void CustomController::updateCMM_MJ()
 { 
-    //ROS_INFO_ONCE("CONTROLLER : MODEL : updatekinematics enter ");
-    /* q_virtual description
-   * 0 ~ 2 : XYZ cartesian coordinates
-   * 3 ~ 5 : XYZ Quaternion
-   * 6 ~ MODEL_DOF + 5 : joint position
-   * model dof + 6 ( last component of q_virtual) : w of Quaternion
-   * */    
-     /*
-    double com_mass;
-    RigidBodyDynamics::Math::Vector3d com_pos;
-    RigidBodyDynamics::Math::Vector3d com_vel, com_accel, com_ang_momentum, com_ang_moment;
-    //Eigen::Vector3d com_pos;
-    //Eigen::Vector3d com_vel, com_accel, com_ang_momentum, com_ang_moment;
-    //mtx_rbdl.lock();
-    //RigidBodyDynamics::UpdateKinematicsCustom(model_l, &q_virtual_f, &q_dot_virtual_f, &q_ddot_virtual_f);
-    //mtx_rbdl.unlock();
-    Eigen::VectorQVQd q_cm;
-    Eigen::VectorVQd q_dot_cm;
-    Eigen::VectorXd q_ddot_cm;
-
-    q_cm.setZero();
-    q_cm.segment(6, MODEL_DOF) = rd_.q_;
-    q_cm(MODEL_DOF_VIRTUAL) = 1.0;
- 
-    q_ddot_cm.resize(MODEL_DOF_VIRTUAL);
-    q_ddot_cm.setZero(MODEL_DOF_VIRTUAL);
-
-    //Eigen::Matrix<double, 3, MODEL_DOF> LMM_rbdl;
-    Eigen::Matrix<double, 3, MODEL_DOF> CMM_Ang;
-
-    Eigen::Vector2d t_cmm;
-     std::chrono::steady_clock::time_point tcc[2];
-     std::chrono::duration<double> td[1];
-
-    tcc[0] = std::chrono::steady_clock::now(); 
-
-    for(int i = 12; i < 13; i++)
-    {
-      q_dot_cm.setZero();
-      q_dot_cm(6+i) = 1.00;
-
-      RigidBodyDynamics::Utils::CalcCenterOfMass(rd_.model_virtual_2, q_cm, q_dot_cm, &q_ddot_cm, com_mass, com_pos, &com_vel, &com_accel, &com_ang_momentum, &com_ang_moment, true);
-      
-      CMM_Ang.col(i) = com_ang_momentum;
-      //LMM_rbdl.col(i) = model_.getCurrentComLinearMomentum();
-      //AMM_rbdl.col(i) = model_.getCurrentComAngularMomentum();
-    }
-
-    tcc[1] = std::chrono::steady_clock::now();   
-    td[0] = tcc[1] - tcc[0];
-    if((mjcnt % 2000) == 0)
-    {
-      //std::cout << CMM_Ang << "," << mjcnt/2000 << "," << td[0].count() << endl; 
-      std::cout << td[0].count() << endl; 
-    }
-    mjcnt ++;
-    
-    //CalcCenterOfMass (model, q, VectorNd::Zero (model.qdot_size), mass, com, NULL, NULL, update_kinematics);     
-
-    */
-
+     
+    std::chrono::steady_clock::time_point cmm1 = std::chrono::steady_clock::now();
        ////////////////////////////////////////////////////////////////////////
     // 2. 실제 사용 및 디버깅 코드
     RigidBodyDynamics::Math::Vector3d com_pos_test, com_vel_test, com_accel_test, com_ang_momentum_test, com_ang_moment_test;
@@ -3140,18 +3118,27 @@ void CustomController::updateCMM_MJ()
     //RigidBodyDynamics::Utils::CalcCenterOfMass(model_C_, q_test, q_dot_test, &q_ddot_test, rd_.link_[COM_id].mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
    // RigidBodyDynamics::Utils::CalcCenterOfMass(rd_.model_virtual_2, q_test, q_dot_test, &q_ddot_test, rd_.com_.mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
     
-    std::chrono::steady_clock::time_point cmm1 = std::chrono::steady_clock::now();
+    
     Eigen::MatrixXd mass_matrix_temp;
     Eigen::MatrixXd cmm;
     mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
     cmm.setZero(3, MODEL_DOF);
     //RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_C_, q_test, mass_matrix_temp, true);
-    RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, true);
     std::chrono::steady_clock::time_point cmm2 = std::chrono::steady_clock::now();
-    getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
+    //if((int)walking_tick_mj % 4 == 0)
+    { //mtx_rbdl_mj.lock();
+      RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, false);
+      //mtx_rbdl_mj.unlock();
+    }
     std::chrono::steady_clock::time_point cmm3 = std::chrono::steady_clock::now();
+    getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
 
-    if( int( walking_tick_mj)%1000 == 0)
+    Eigen::Vector3d Ang_momentum;
+    Ang_momentum = (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm*q_dot_test.segment(6, MODEL_DOF));
+    MJ_graph << Ang_momentum(0) << "," << Ang_momentum(1) << "," << Ang_momentum(2) << endl;
+    
+
+    if( int( walking_tick_mj)%2000 == 0)
     {
     //     cout<<"mass_matrix_temp: \n"<< mass_matrix_temp <<endl;
 
@@ -3165,7 +3152,7 @@ void CustomController::updateCMM_MJ()
     //     cout<<"J_com*qdot: " << (mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) + base_velocity.segment(0, 3)).transpose() <<endl; // <- this is not correct. Shoud consider ang vel of base frame
     //     cout<<"LM error: " << (com_vel_test - mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) - base_velocity.segment(0, 3)).transpose() <<endl;
           
-           cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() <<endl;
+           cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(cmm2 - cmm1).count() <<endl;
     }
 }
 

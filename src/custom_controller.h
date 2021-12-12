@@ -146,6 +146,8 @@ public:
   Eigen::Isometry3d rfoot_float_init_;
   double wn = 0;
 
+  std::mutex mtx_rbdl_mj;
+
   Eigen::Vector2d sc_err_before;
   Eigen::Vector2d sc_err_after;
   Eigen::Vector2d SC_com;
@@ -174,6 +176,7 @@ public:
   Eigen::Vector6d swingfoot_support_init_;
 
   Eigen::MatrixXd ref_zmp_;
+  Eigen::MatrixXd ref_zmp_mj_;
 
   Eigen::Vector3d xs_;
   Eigen::Vector3d ys_;
