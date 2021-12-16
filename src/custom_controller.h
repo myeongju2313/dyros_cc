@@ -23,7 +23,7 @@ public:
   RobotData &rd_;
   WholebodyController &wbc_;
   TaskCommand tc;
-
+  
   //////////////////////////////// Myeong-Ju
   void circling_motion();
   void computeIkControl_MJ(Eigen::Isometry3d float_trunk_transform, Eigen::Isometry3d float_lleg_transform, Eigen::Isometry3d float_rleg_transform, Eigen::Vector12d& desired_leg_q);
@@ -54,7 +54,7 @@ public:
   void getCentroidalMomentumMatrix(MatrixXd mass_matrix, MatrixXd &CMM);
   void SC_err_compen(double x_des, double y_des);
 
-  void updateCMM_MJ();
+  void updateCMM_DG();
 
   void CP_compen_MJ();
   void CP_compen_MJ_FT();
@@ -104,13 +104,12 @@ public:
   Eigen::Isometry3d pelv_support_start_;
   Eigen::Isometry3d pelv_support_init_;
   Eigen::Vector2d del_cmp;
-  Eigen::Vector2d del_ang_acc_;
-  Eigen::Vector2d del_ang_acc_prev_;
-  Eigen::Vector2d del_ang_vel_;
-  Eigen::Vector2d del_ang_vel_prev_;
-  Eigen::Vector2d del_angle_;
-  Eigen::Vector2d del_angle_prev_;
-
+  Eigen::Vector3d del_tau_;
+  Eigen::Vector3d del_ang_momentum_;
+  Eigen::Vector3d del_ang_momentum_prev_;
+  Eigen::VectorQd del_cmm_q_;
+  unsigned int cmp_control_mode = 0;
+  
   Eigen::Vector2d del_zmp;
   Eigen::Vector2d cp_desired_;
   Eigen::Vector2d cp_measured_;
@@ -141,6 +140,8 @@ public:
   Eigen::Isometry3d pelv_float_current_;
   Eigen::Isometry3d lfoot_float_current_;
   Eigen::Isometry3d rfoot_float_current_;
+  Eigen::Isometry3d lfoot_float_current_c;
+  Eigen::Isometry3d rfoot_float_current_c;
   Eigen::Isometry3d pelv_float_init_;
   Eigen::Isometry3d lfoot_float_init_;
   Eigen::Isometry3d rfoot_float_init_;
@@ -161,8 +162,9 @@ public:
   double walking_end_flag = 0;
   unsigned int mjcnt = 0;
   Eigen::Isometry3d supportfoot_float_current_; 
-
+  Eigen::Isometry3d supportfoot_float_current_c;
   Eigen::Isometry3d pelv_support_current_;
+   Eigen::Isometry3d pelv_support_current_cmm;
   Eigen::Isometry3d lfoot_support_current_;
   Eigen::Isometry3d rfoot_support_current_;
 
@@ -175,8 +177,7 @@ public:
   Eigen::Vector6d swingfoot_float_init_;
   Eigen::Vector6d swingfoot_support_init_;
 
-  Eigen::MatrixXd ref_zmp_;
-  Eigen::MatrixXd ref_zmp_mj_;
+  Eigen::MatrixXd ref_zmp_; 
 
   Eigen::Vector3d xs_;
   Eigen::Vector3d ys_;

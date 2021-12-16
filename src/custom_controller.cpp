@@ -4,7 +4,7 @@
 #include <rbdl/addons/urdfreader/urdfreader.h>
 
 CustomController::CustomController(DataContainer &dc, RobotData &rd) : dc_(dc), rd_(rd), wbc_(dc.wbc_)
-{
+{   
     ControlVal_.setZero();
     pedal_command = dc_.nh.subscribe("/tocabi/pedalcommand", 100, &CustomController::PedalCommandCallback, this);
 }
@@ -46,6 +46,7 @@ ofstream MJ_joint("/home/myeongju/MJ_joint.txt");
 ofstream MJ_joint1("/home/myeongju/MJ_joint1.txt");
 ofstream MJ_ZMP("/home/myeongju/MJ_ZMP.txt");
 
+ 
 void CustomController::computeSlow()
 {
     if (tc.mode == 10)
@@ -56,7 +57,7 @@ void CustomController::computeSlow()
             walking_enable_ = true;            
             // Initial pose             
             ref_q_ = rd_.q_;
-            for(int i = 0; i < 12; i ++)
+            for(int i = 0; i < MODEL_DOF; i ++)
             {
               Initial_ref_q_(i) = ref_q_(i);
             }
@@ -111,27 +112,24 @@ void CustomController::computeSlow()
             }            
             // hip_compensator();
             GravityCalculate_MJ();
+            updateCMM_DG();
 
             if(walking_tick_mj < 1.0*hz_)
             {
+              //for leg
               for(int i = 0; i < 12; i ++)
               { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
-            }
+              //for arm
+              ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(17), 15.0 * DEG2RAD, 0.0, 0.0); // +방향 주면 아래로 내려감
+              ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(27), -15.0 * DEG2RAD, 0.0, 0.0); // -방향 주면 아래로 내려감
+            }                        
             
-            if((int)walking_tick_mj % 10 == 0) // model update 안하면 500Hz도 됨.
-            {
-              updateCMM_MJ();
-            } 
             CP_compen_MJ();
             CP_compen_MJ_FT();
             for(int i = 0; i < MODEL_DOF; i++)
-            {
-              ControlVal_(i) = Kp(i) * (ref_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ;  
-              // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)
-              if(i == 14)
-              {
-                ControlVal_(i) = Kp(i) * (ref_q_(i) + 0*del_angle_(1) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ; 
-              }
+            { 
+              ControlVal_(i) = Kp(i) * (ref_q_(i) - del_cmm_q_(i) - rd_.q_(i)) - Kd(i) * rd_.q_dot_(i) + 1.0 * Gravity_MJ_(i) + 0.0*Tau_CP(i) ;  
+              // 4 (Ankle_pitch_L), 5 (Ankle_roll_L), 10 (Ankle_pitch_R),11 (Ankle_roll_R)             
             }               
                         
             desired_q_not_compensated_ = ref_q_;           
@@ -263,12 +261,7 @@ void CustomController::computeFast()
 
     }
     else if (tc.mode == 11)
-    { 
-      // if((int)walking_tick_mj % 10 == 0)
-      // {
-      //   updateCMM_MJ();
-      // }
-      // updateCMM_MJ();      
+    {     
     }
 }
 
@@ -448,11 +441,11 @@ void CustomController::getRobotState()
 
   pelv_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Pelvis].xpos);
 
-  // lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
+  lfoot_float_current_c.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Left_Foot].Rotm;
   lfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(lfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(lfoot_roll_rot_) * rd_.link_[Left_Foot].Rotm; // 기울기 반영
   lfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Left_Foot].xpos);  // 지면에서 Ankle frame 위치
   
-  // rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
+  rfoot_float_current_c.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * rd_.link_[Right_Foot].Rotm;
   rfoot_float_current_.linear() = DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_) * DyrosMath::inverseIsometry3d(rfoot_pitch_rot_) * DyrosMath::inverseIsometry3d(rfoot_roll_rot_) * rd_.link_[Right_Foot].Rotm; // 기울기 반영
   rfoot_float_current_.translation() = DyrosMath::multiplyIsometry3dVector3d(DyrosMath::inverseIsometry3d(pelv_yaw_rot_current_from_global_),rd_.link_[Right_Foot].xpos); // 지면에서 Ankle frame
    
@@ -470,11 +463,18 @@ void CustomController::getRobotState()
   // com_float_current_LPF = 1/(1+2*M_PI*8.0*del_t)*com_float_current_LPF + (2*M_PI*8.0*del_t)/(1+2*M_PI*8.0*del_t)*com_float_current_;    
 
   if(foot_step_(current_step_num_, 6) == 0)
-  { supportfoot_float_current_ = rfoot_float_current_; }
+  { 
+    supportfoot_float_current_ = rfoot_float_current_;
+    supportfoot_float_current_c = rfoot_float_current_c; 
+  }
   else if(foot_step_(current_step_num_, 6) == 1)
-  { supportfoot_float_current_ = lfoot_float_current_; }
+  { 
+    supportfoot_float_current_ = lfoot_float_current_; 
+    supportfoot_float_current_c = lfoot_float_current_c;
+  }
   
-  pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;   
+  
+  pelv_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * pelv_float_current_;  
   lfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * lfoot_float_current_;
   rfoot_support_current_ = DyrosMath::inverseIsometry3d(supportfoot_float_current_) * rfoot_float_current_;
      
@@ -837,7 +837,7 @@ void CustomController::calculateFootStepTotal_MJ()
  
   if(length_to_target == 0)
   {
-    middle_total_step_number = 10; //
+    middle_total_step_number = 15; //
     dlength = 0;
   }
 
@@ -1240,8 +1240,8 @@ void CustomController::Joint_gain_set_MJ()
     Kp(14) = 2200.0; Kd(14) = 90.0;// Waist roll
         
     Kp(15) = 400.0; Kd(15) = 10.0;
-    Kp(16) = 800.0; Kd(16) = 10.0;
-    Kp(17) = 400.0; Kd(17) = 10.0;
+    Kp(16) = 800.0; Kd(16) = 10.0; // Left shoulder pitch
+    Kp(17) = 400.0; Kd(17) = 10.0; // Left shoulder roll
     Kp(18) = 400.0; Kd(18) = 10.0;
     Kp(19) = 250.0; Kd(19) = 2.5;
     Kp(20) = 250.0; Kd(20) = 2.0;
@@ -1252,8 +1252,8 @@ void CustomController::Joint_gain_set_MJ()
     Kp(24) = 50.0; Kd(24) = 2.0; // Neck
 
     Kp(25) = 400.0; Kd(25) = 10.0;
-    Kp(26) = 800.0; Kd(26) = 10.0;
-    Kp(27) = 400.0; Kd(27) = 10.0;
+    Kp(26) = 800.0; Kd(26) = 10.0; // Right shoulder pitch
+    Kp(27) = 400.0; Kd(27) = 10.0; // Right shoulder roll
     Kp(28) = 400.0; Kd(28) = 10.0;
     Kp(29) = 250.0; Kd(29) = 2.5;
     Kp(30) = 250.0; Kd(30) = 2.0;
@@ -1354,7 +1354,6 @@ void CustomController::getZmpTrajectory()
 void CustomController::zmpGenerator(const unsigned int norm_size, const unsigned planning_step_num)
 {
   ref_zmp_.resize(norm_size, 2);
-  ref_zmp_mj_.resize(int(norm_size/2), 2);
   Eigen::VectorXd temp_px;
   Eigen::VectorXd temp_py;
  
@@ -1874,22 +1873,7 @@ void CustomController::preview_Parameter(double dt, int NL, Eigen::MatrixXd& Gi,
 void CustomController::previewcontroller(double dt, int NL, int tick, double x_i, double y_i, Eigen::Vector3d xs, Eigen::Vector3d ys, double& UX, double& UY,
        Eigen::MatrixXd Gi, Eigen::VectorXd Gd, Eigen::MatrixXd Gx, Eigen::MatrixXd A, Eigen::VectorXd B, Eigen::MatrixXd C, Eigen::Vector3d &XD, Eigen::Vector3d &YD)
 {
-    
-    // int zmp_size;
-    //zmp_size = ref_zmp_.col(1).size();
-    // Eigen::VectorXd px_ref, py_ref;
-    // px_ref.resize(zmp_size);
-    // py_ref.resize(zmp_size); 
- 
      
-    //for(int i = 0; i < zmp_size; i++) // 1KHz Preview에서 2배 Size 가짐. 계산시간이 엄청걸림.
-    //{    
-        //px_ref(i) = ref_zmp_(i,0);
-        //py_ref(i) = ref_zmp_(i,1);
-    //}
- 
-    //ZMP_X_REF = px_ref(tick);
-    //ZMP_Y_REF = py_ref(tick);
     ZMP_X_REF = ref_zmp_(tick,0);
     ZMP_Y_REF = ref_zmp_(tick,1); 
 
@@ -1926,23 +1910,16 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     py = C*preview_y;
     
     double sum_Gd_px_ref = 0, sum_Gd_py_ref = 0;
-
-    std::chrono::steady_clock::time_point preview2 = std::chrono::steady_clock::now();
+ 
     for(int i = 0; i < NL; i++)
     {
         // sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(ref_zmp_(tick + 2 + 2*i,0) - ref_zmp_(tick + 2*i,0));
         // sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(ref_zmp_(tick + 2 + 2*i,1) - ref_zmp_(tick + 2*i,1));
         sum_Gd_px_ref = sum_Gd_px_ref + Gd(i)*(ref_zmp_(tick + 1 + i,0) - ref_zmp_(tick + i,0));
         sum_Gd_py_ref = sum_Gd_py_ref + Gd(i)*(ref_zmp_(tick + 1 + i,1) - ref_zmp_(tick + i,1));
-    }
-    std::chrono::steady_clock::time_point preview3 = std::chrono::steady_clock::now();
+    } 
 
-    //cout << "2:" <<  (walking_tick_mj - zmp_start_time_)/1000.0 << "," << tick << endl;
-    //MJ_graph << ref_zmp_(tick,1) << "," << com_desired_(1) << "," << py << endl;
-    if(int(walking_tick_mj) % 500 == 0)
-    {
-      cout<<"preview time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(preview3 - preview2).count() << endl;
-    }
+ 
     Eigen::MatrixXd del_ux(1,1);
     Eigen::MatrixXd del_uy(1,1);
     del_ux.setZero();
@@ -1976,76 +1953,53 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     cp_measured_(0) = com_support_cp_(0) + com_float_current_dot_LPF(0)/wn;
     cp_measured_(1) = com_support_current_(1) + com_float_current_dot_LPF(1)/wn;      
 
-    /////////////////////////////////////////////////////////////////////////////////// 1103 이후로 추가 된 코드
-   
-
-    if(walking_tick_mj == 0)
-    {
-      del_ang_acc_.setZero();
-      del_ang_vel_.setZero();
-      del_angle_.setZero(); 
-      del_ang_vel_prev_.setZero();
-      del_angle_prev_.setZero(); 
-    }    
+    /////////////////////////////////////////////////////////////////////////////////// CMP controller
 
     del_zmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
-    del_cmp(1) = 1.3*(cp_measured_(1) - cp_desired_(1));
+    del_cmp(1) = 1.4*(cp_measured_(1) - cp_desired_(1));
+   
+    double foot_width = 0.055;
 
-    del_ang_vel_prev_ = del_ang_vel_;
-    del_angle_prev_ = del_angle_; 
-
-    unsigned int mode = 0;
+    if(walking_tick_mj == 0)
+    { 
+      del_tau_.setZero();
+      del_ang_momentum_.setZero();
+      del_ang_momentum_prev_.setZero();
+    }   
     
-    if(del_cmp(1) > 0.055) // 0.065
+    del_ang_momentum_prev_ = del_ang_momentum_;
+
+    if(del_cmp(1) > foot_width) // original foot width in urdf -> 0.065
     {
-      del_zmp(1) = 0.055; 
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg // J = 2.3
+      del_zmp(1) = foot_width; 
+      //del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg // J = 2.3
+      del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
+      cmp_control_mode = 1;
     }
-    else if(del_cmp(1) <= 0.055 && del_cmp(1) > -0.055)
+    else if(del_cmp(1) <= foot_width && del_cmp(1) > -foot_width)
     {
       del_zmp(1) = del_cmp(1);
-      del_ang_acc_(1) = (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14));
-      mode = 1;
+      if(walking_tick_mj > t_temp_) 
+      {
+        //del_tau_(0) = ( 0*10*(ref_q_(14) - rd_.q_(14)) - 0*5*rd_.q_dot_(14) + 10*(ref_q_(17) - rd_.q_(17)) - 5*rd_.q_dot_(17) + 10*(ref_q_(27) - rd_.q_(27)) - 5*rd_.q_dot_(27));
+        del_tau_(0) = ( 50*(ref_q_(14) - rd_.q_(14)) - 15*rd_.q_dot_(14) + 5*(ref_q_(17) - rd_.q_(17)) - 2.5*rd_.q_dot_(17) + 5*(ref_q_(27) - rd_.q_(27)) - 2.5*rd_.q_dot_(27)) ;
+      }
+      else
+      {
+        del_tau_(0) = 0;
+      }
+      cmp_control_mode = 0; 
     }
-    else if(del_cmp(1) < -0.055)
+    else if(del_cmp(1) < -foot_width)
     {
-      del_zmp(1) = -0.055;
-      del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); 
+      del_zmp(1) = -foot_width;
+      //del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); 
+      del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
+      cmp_control_mode = 1;
     }
-    //MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << mode << "," << cp_measured_(1) << "," << cp_desired_(1) << endl;
-    if(del_ang_acc_(1) > 500.0/180.0*M_PI)
-    {
-      del_ang_acc_(1) = 500/180.0*M_PI;
-    }
-    else if(del_ang_acc_(1) < -500.0/180.0*M_PI)
-    {
-      del_ang_acc_(1) = -500.0/180.0*M_PI;
-    }
-
-    del_ang_vel_ = del_ang_vel_prev_ + del_t * del_ang_acc_;
-
-    if(del_ang_vel_(1) > 200.0/180.0*M_PI)
-    {
-      del_ang_vel_(1) = 200.0/180.0*M_PI;
-    }
-    else if(del_ang_vel_(1) < -200.0/180.0*M_PI)
-    {
-      del_ang_vel_(1) = -200.0/180.0*M_PI;
-    }
-
-    del_angle_ = del_angle_prev_ + del_t * del_ang_vel_;
-
-    if(del_angle_(1) > 20.0/180.0*M_PI)
-    {
-      del_angle_(1) = 20.0/180.0*M_PI;
-    }
-    else if(del_angle_(1) < -20.0/180.0*M_PI)
-    {
-      del_angle_(1) = -20.0/180.0*M_PI;
-    }
-
-    //MJ_graph << del_angle_(1) << "," << del_ang_vel_(1) << "," << del_ang_acc_(1) << "," << (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 0.1 << "," << (10*(0 - rd_.q_(14)) - 0.1*rd_.q_dot_(14)) << endl; 
-
+       
+    del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
+    // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
      
 }
@@ -3092,68 +3046,111 @@ void CustomController::CP_compen_MJ_FT()
 
   }
 
-void CustomController::updateCMM_MJ()
-{ 
-     
-    std::chrono::steady_clock::time_point cmm1 = std::chrono::steady_clock::now();
-       ////////////////////////////////////////////////////////////////////////
-    // 2. 실제 사용 및 디버깅 코드
-    RigidBodyDynamics::Math::Vector3d com_pos_test, com_vel_test, com_accel_test, com_ang_momentum_test, com_ang_moment_test;
-    Eigen::VectorXd q_test, q_dot_test, q_ddot_test;
-    q_test = rd_.q_virtual_;  
-    // modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame 
-    Eigen::Vector6d base_velocity;
-    base_velocity = rd_.q_dot_virtual_.segment(0, 6);
-    base_velocity.segment(0, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(0, 3);
-    base_velocity.segment(3, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(3, 3);
+void CustomController::updateCMM_DG()
+{      
+  Eigen::VectorXd q_test, q_dot_test;
+  q_test = rd_.q_virtual_;  
+  // modify the virtual joint value from the value expressed in global frame to be the value expressed in the base frame 
+  Eigen::Vector6d base_velocity;
+  base_velocity = rd_.q_dot_virtual_.segment(0, 6);
+  base_velocity.segment(0, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(0, 3); // virtual joint velocity of the robot w.r.t pelvis frame
+  base_velocity.segment(3, 3) = rd_.link_[Pelvis].Rotm.transpose()*base_velocity.segment(3, 3);
+
+  q_test.segment(0, 6).setZero(); 
+  q_test(39) = 1;
+  q_dot_test = rd_.q_dot_virtual_;
+  q_dot_test.segment(0, 6) = base_velocity;
   
-    q_test.segment(0, 6).setZero();
-    q_test(39) = 1;
-    q_dot_test = rd_.q_dot_virtual_;
-    q_dot_test.segment(0, 6) = base_velocity;
-    ///////////////////////////////////////////
+  Eigen::MatrixXd mass_matrix_temp;
+  Eigen::MatrixXd cmm;
+  Eigen::MatrixXd cmm_support;
+  Eigen::MatrixXd sel_matrix;
+  Eigen::MatrixXd cmm_selected; 
 
-    q_ddot_test.setZero(MODEL_DOF_VIRTUAL);
+  mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
+  cmm.setZero(3, MODEL_DOF);
+  cmm_support.setZero(3, MODEL_DOF); 
+  sel_matrix.setZero(MODEL_DOF, MODEL_DOF);
+  cmm_selected.setZero(3, MODEL_DOF);
+  
+  // Defined the selection matrix
+  sel_matrix(14,14) = 1.0; // waist roll
+  sel_matrix(16,16) = 1.0;
+  sel_matrix(17,17) = 1.0; // shoulder roll
+  sel_matrix(26,26) = 1.0;
+  sel_matrix(27,27) = 1.0;
+  
+  RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, true);
     
-    //RigidBodyDynamics::Utils::CalcCenterOfMass(model_C_, q_test, q_dot_test, &q_ddot_test, rd_.link_[COM_id].mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
-   // RigidBodyDynamics::Utils::CalcCenterOfMass(rd_.model_virtual_2, q_test, q_dot_test, &q_ddot_test, rd_.com_.mass, com_pos_test, &com_vel_test, &com_accel_test, &com_ang_momentum_test, &com_ang_moment_test, true);
+  getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
     
-    
-    Eigen::MatrixXd mass_matrix_temp;
-    Eigen::MatrixXd cmm;
-    mass_matrix_temp.setZero(MODEL_DOF_VIRTUAL, MODEL_DOF_VIRTUAL);
-    cmm.setZero(3, MODEL_DOF);
-    //RigidBodyDynamics::CompositeRigidBodyAlgorithm(model_C_, q_test, mass_matrix_temp, true);
-    std::chrono::steady_clock::time_point cmm2 = std::chrono::steady_clock::now();
-    //if((int)walking_tick_mj % 4 == 0)
-    { //mtx_rbdl_mj.lock();
-      RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, false);
-      //mtx_rbdl_mj.unlock();
-    }
-    std::chrono::steady_clock::time_point cmm3 = std::chrono::steady_clock::now();
-    getCentroidalMomentumMatrix(mass_matrix_temp, cmm);
+  cmm_support = pelv_support_current_.linear() * cmm; // considering the gravity direction
+  //Eigen::Vector3d Real_ang_momentum;
+  //Real_ang_momentum = mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm_support*q_dot_test.segment(6, MODEL_DOF);   
+  cmm_selected = cmm_support*sel_matrix;
+  
+  Eigen::VectorQd del_cmm_q_dot_;
+  Eigen::VectorQd del_cmm_q_prev_; 
+  
+  if(walking_tick_mj == 0)
+  {
+    del_cmm_q_.setZero();
+    del_cmm_q_prev_.setZero();
+    del_cmm_q_dot_.setZero(); 
+  }
 
-    Eigen::Vector3d Ang_momentum;
-    Ang_momentum = (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm*q_dot_test.segment(6, MODEL_DOF));
-    MJ_graph << Ang_momentum(0) << "," << Ang_momentum(1) << "," << Ang_momentum(2) << endl;
-    
+  del_cmm_q_prev_ = del_cmm_q_;    
+  del_cmm_q_dot_ = cmm_selected.transpose()*((cmm_selected*cmm_selected.transpose()).inverse()) * del_ang_momentum_;
+  
+  if(del_cmm_q_dot_(14) > 500*DEG2RAD) // 사실 이렇게 하면 안됨, 관절 각속도 리밋을 고려해서 해를 푸는게 아니라 억지로 리밋 위로는 잘라버리는 거니까.
+  { del_cmm_q_dot_(14) = 500*DEG2RAD; }
+  else if(del_cmm_q_dot_(14) < -500*DEG2RAD)
+  { del_cmm_q_dot_(14) = -500*DEG2RAD; }
 
-    if( int( walking_tick_mj)%2000 == 0)
-    {
-    //     cout<<"mass_matrix_temp: \n"<< mass_matrix_temp <<endl;
+  if(del_cmm_q_dot_(17) > 500*DEG2RAD)
+  { del_cmm_q_dot_(17) = 500*DEG2RAD; }
+  else if(del_cmm_q_dot_(17) < -500*DEG2RAD)
+  { del_cmm_q_dot_(17) = -500*DEG2RAD; }
 
-    //     cout<<"com_ang_momentum_temp: "<<com_ang_momentum_test.transpose()<<endl;
-    //     cout<<"IC*wb + CMM*qdot: "<< ( mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3)+ cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
-    //     cout<<"AM error: " << (com_ang_momentum_test - mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) - cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
-           //cout<<"AM RBDL " << (com_ang_momentum_test).transpose()  <<endl;
-           cout<<"AM DG " << (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) + cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() << endl;
+  if(del_cmm_q_dot_(27) > 500*DEG2RAD)
+  { del_cmm_q_dot_(27) = 500*DEG2RAD; }
+  else if(del_cmm_q_dot_(27) < -500*DEG2RAD)
+  { del_cmm_q_dot_(27) = -500*DEG2RAD; }
 
-    //     cout<<"com_lin_vel: "<<com_vel_test.transpose()<<endl;
-    //     cout<<"J_com*qdot: " << (mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) + base_velocity.segment(0, 3)).transpose() <<endl; // <- this is not correct. Shoud consider ang vel of base frame
-    //     cout<<"LM error: " << (com_vel_test - mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) - base_velocity.segment(0, 3)).transpose() <<endl;
-          
-           cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() << "," << std::chrono::duration_cast<std::chrono::nanoseconds>(cmm2 - cmm1).count() <<endl;
-    }
+  del_cmm_q_ = del_cmm_q_prev_ + del_cmm_q_dot_ * del_t;
+  // del_cmm_q_.setZero();  
+  if(del_cmm_q_(14) > 20*DEG2RAD)
+  { del_cmm_q_(14) = 20*DEG2RAD; }
+  else if(del_cmm_q_(14) < -20*DEG2RAD)
+  { del_cmm_q_(14) = -20*DEG2RAD; }
+
+  if(del_cmm_q_(17) > 40*DEG2RAD)
+  { del_cmm_q_(17) = 40*DEG2RAD; }
+  else if(del_cmm_q_(17) < -40*DEG2RAD)
+  { del_cmm_q_(17) = -40*DEG2RAD; }
+
+  if(del_cmm_q_(27) > 40*DEG2RAD)
+  { del_cmm_q_(27) = 40*DEG2RAD; }
+  else if(del_cmm_q_(27) < -40*DEG2RAD)
+  { del_cmm_q_(27) = -40*DEG2RAD; }  
+
+  MJ_graph << del_cmm_q_(17) << "," << del_cmm_q_(27) << "," << del_cmm_q_dot_(17) << "," << del_cmm_q_dot_(27) << "," << del_tau_(0) << "," << cp_measured_(1) - cp_desired_(1) <<  endl; 
+
+  if(int(walking_tick_mj) % 400 == 0)
+  {
+      cout << "del_cmm_q_ : " << del_cmm_q_(17)*RAD2DEG << "," << del_cmm_q_(27)*RAD2DEG << endl;
+      cout << "del_cmm_q_dot : " << del_cmm_q_dot_(17)*RAD2DEG << "," << del_cmm_q_dot_(27)*RAD2DEG << endl;
+      //cout<<"mass_matrix_temp: \n"<< mass_matrix_temp <<endl;
+      //cout<<"com_ang_momentum_temp: "<<com_ang_momentum_test.transpose()<<endl;
+      //cout<<"IC*wb + CMM*qdot: "<< (mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3)+ cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
+      //cout<<"AM error: " << (com_ang_momentum_test - mass_matrix_temp.block(3, 3, 3, 3)*base_velocity.segment(3, 3) - cmm*q_dot_test.segment(6, MODEL_DOF)).transpose() <<endl;
+
+      //cout<<"com_lin_vel: "<<com_vel_test.transpose()<<endl;
+      //cout<<"J_com*qdot: " << (mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) + base_velocity.segment(0, 3)).transpose() <<endl; // <- this is not correct. Shoud consider ang vel of base frame
+      //cout<<"LM error: " << (com_vel_test - mass_matrix_temp.block(0, 6, 3, MODEL_DOF)*q_dot_test.segment(6, MODEL_DOF)/mass_matrix_temp(0, 0) - base_velocity.segment(0, 3)).transpose() <<endl;
+
+      //cout<<"getCentroidalMomentumMatrix time: "<< std::chrono::duration_cast<std::chrono::nanoseconds>(cmm3 - cmm2).count() <<endl;
+  }
 }
 
  
