@@ -120,8 +120,8 @@ void CustomController::computeSlow()
               for(int i = 0; i < 12; i ++)
               { ref_q_(i) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(i), q_des(i), 0.0, 0.0); }
               //for arm
-              ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(17), 15.0 * DEG2RAD, 0.0, 0.0); // +방향 주면 아래로 내려감
-              ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(27), -15.0 * DEG2RAD, 0.0, 0.0); // -방향 주면 아래로 내려감
+              ref_q_(17) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(17), 50.0 * DEG2RAD, 0.0, 0.0); // +방향 주면 아래로 내려감
+              ref_q_(27) = DyrosMath::cubic(walking_tick_mj, 0, 1.0*hz_, Initial_ref_q_(27), -50.0 * DEG2RAD, 0.0, 0.0); // -방향 주면 아래로 내려감
             }                        
             
             CP_compen_MJ();
@@ -1955,10 +1955,11 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
 
     /////////////////////////////////////////////////////////////////////////////////// CMP controller
 
-    del_zmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
+    del_cmp(0) = 1.2*(cp_measured_(0) - cp_desired_(0));
     del_cmp(1) = 1.4*(cp_measured_(1) - cp_desired_(1));
-   
-    double foot_width = 0.055;
+    
+    double foot_width_x = 0.13;  // original foot width in urdf -> 0.15
+    double foot_width_y = 0.055; // original foot width in urdf -> 0.065
 
     if(walking_tick_mj == 0)
     { 
@@ -1969,14 +1970,40 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
     
     del_ang_momentum_prev_ = del_ang_momentum_;
 
-    if(del_cmp(1) > foot_width) // original foot width in urdf -> 0.065
+    if(del_cmp(0) > foot_width_x) 
     {
-      del_zmp(1) = foot_width; 
+      del_zmp(0) = foot_width_x; 
+      del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.com_.mass * GRAVITY; // Y axis delta angular moment , X direction CP control      
+    }
+    else if(del_cmp(0) <= foot_width_x && del_cmp(0) > -foot_width_x)
+    {
+      del_zmp(0) = del_cmp(0);
+      if(walking_tick_mj > t_temp_) 
+      { 
+        del_tau_(1) = ( 0*10*(ref_q_(13) - rd_.q_(13)) - 0*5*rd_.q_dot_(13) + 0*10*(ref_q_(16) - rd_.q_(16)) - 0*5*rd_.q_dot_(16) + 0*10*(ref_q_(26) - rd_.q_(26)) - 0*5*rd_.q_dot_(26));
+        //del_tau_(1) = ( 50*(ref_q_(14) - rd_.q_(14)) - 15*rd_.q_dot_(14) + 5*(ref_q_(17) - rd_.q_(17)) - 2.5*rd_.q_dot_(17) + 5*(ref_q_(27) - rd_.q_(27)) - 2.5*rd_.q_dot_(27)) ;
+        del_tau_(1) = 0;
+        cout << ref_q_(16) * RAD2DEG << "," << rd_.q_(16)* RAD2DEG << "," << ref_q_(26) * RAD2DEG << "," << rd_.q_(26)* RAD2DEG << endl;
+      }
+      else
+      {
+        del_tau_(1) = 0;
+      } 
+    }
+    else if(del_cmp(0) < -foot_width_x)
+    {
+      del_zmp(0) = -foot_width_x;
+      del_tau_(1) = -(del_cmp(0) - del_zmp(0)) * rd_.com_.mass * GRAVITY; // Y axis delta angular moment , X direction CP control      
+    }
+
+    if(del_cmp(1) > foot_width_y) 
+    {
+      del_zmp(1) = foot_width_y; 
       //del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); // del_tau / mg = J * del_theta_ddot / mg // J = 2.3
       del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
       cmp_control_mode = 1;
     }
-    else if(del_cmp(1) <= foot_width && del_cmp(1) > -foot_width)
+    else if(del_cmp(1) <= foot_width_y && del_cmp(1) > -foot_width_y)
     {
       del_zmp(1) = del_cmp(1);
       if(walking_tick_mj > t_temp_) 
@@ -1990,14 +2017,14 @@ void CustomController::previewcontroller(double dt, int NL, int tick, double x_i
       }
       cmp_control_mode = 0; 
     }
-    else if(del_cmp(1) < -foot_width)
+    else if(del_cmp(1) < -foot_width_y)
     {
-      del_zmp(1) = -foot_width;
+      del_zmp(1) = -foot_width_y;
       //del_ang_acc_(1) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY / 1.0 + (20*(0 - rd_.q_(14)) - 5*rd_.q_dot_(14)); 
       del_tau_(0) = (del_cmp(1) - del_zmp(1)) * rd_.com_.mass * GRAVITY; // X axis delta angular moment , Y direction CP compensation
       cmp_control_mode = 1;
-    }
-       
+    } 
+
     del_ang_momentum_ = del_ang_momentum_prev_ + del_t * del_tau_; //calcuation of delta angular momentum by integrating Centroidal angular moment
     // del_tau_가 0이되어도 del_ang_momentum은 계속 값이 남아있다. del_ang_momentum을 0으로 만들어줄 전략이 필요.
     CLIPM_ZMP_compen_MJ(del_zmp(0), del_zmp(1));
@@ -3074,11 +3101,12 @@ void CustomController::updateCMM_DG()
   cmm_selected.setZero(3, MODEL_DOF);
   
   // Defined the selection matrix
+  sel_matrix(13,13) = 0.0; // waist pitch
   sel_matrix(14,14) = 1.0; // waist roll
-  sel_matrix(16,16) = 1.0;
-  sel_matrix(17,17) = 1.0; // shoulder roll
-  sel_matrix(26,26) = 1.0;
-  sel_matrix(27,27) = 1.0;
+  sel_matrix(16,16) = 1.0; // left shoulder pitch
+  sel_matrix(17,17) = 1.0; // left shoulder roll
+  sel_matrix(26,26) = 1.0; // right shoulder pitch
+  sel_matrix(27,27) = 1.0; // right shoulder roll
   
   RigidBodyDynamics::CompositeRigidBodyAlgorithm(rd_.model_virtual_2, q_test, mass_matrix_temp, true);
     
@@ -3119,11 +3147,21 @@ void CustomController::updateCMM_DG()
 
   del_cmm_q_ = del_cmm_q_prev_ + del_cmm_q_dot_ * del_t;
   // del_cmm_q_.setZero();  
-  if(del_cmm_q_(14) > 20*DEG2RAD)
-  { del_cmm_q_(14) = 20*DEG2RAD; }
-  else if(del_cmm_q_(14) < -20*DEG2RAD)
-  { del_cmm_q_(14) = -20*DEG2RAD; }
+  if(del_cmm_q_(13) > 20*DEG2RAD)
+  { del_cmm_q_(13) = 20*DEG2RAD; }
+  else if(del_cmm_q_(13) < -20*DEG2RAD)
+  { del_cmm_q_(13) = -20*DEG2RAD; }
 
+  // if(del_cmm_q_(16) > 40*DEG2RAD)
+  // { del_cmm_q_(16) = 40*DEG2RAD; }
+  // else if(del_cmm_q_(16) < -40*DEG2RAD)
+  // { del_cmm_q_(16) = -40*DEG2RAD; }
+
+  // if(del_cmm_q_(26) > 40*DEG2RAD)
+  // { del_cmm_q_(26) = 40*DEG2RAD; }
+  // else if(del_cmm_q_(26) < -40*DEG2RAD)
+  // { del_cmm_q_(26) = -40*DEG2RAD; } 
+  
   if(del_cmm_q_(17) > 40*DEG2RAD)
   { del_cmm_q_(17) = 40*DEG2RAD; }
   else if(del_cmm_q_(17) < -40*DEG2RAD)
@@ -3134,7 +3172,8 @@ void CustomController::updateCMM_DG()
   else if(del_cmm_q_(27) < -40*DEG2RAD)
   { del_cmm_q_(27) = -40*DEG2RAD; }  
 
-  MJ_graph << del_cmm_q_(17) << "," << del_cmm_q_(27) << "," << del_cmm_q_dot_(17) << "," << del_cmm_q_dot_(27) << "," << del_tau_(0) << "," << cp_measured_(1) - cp_desired_(1) <<  endl; 
+  MJ_graph << del_cmm_q_(16) << "," << del_cmm_q_(26) << "," << del_cmm_q_dot_(16) << "," << del_cmm_q_dot_(26) << "," << del_tau_(1) << "," << cp_measured_(0) - cp_desired_(0) <<  endl;
+  //MJ_graph << del_cmm_q_(17) << "," << del_cmm_q_(27) << "," << del_cmm_q_dot_(17) << "," << del_cmm_q_dot_(27) << "," << del_tau_(0) << "," << cp_measured_(1) - cp_desired_(1) <<  endl; 
 
   if(int(walking_tick_mj) % 400 == 0)
   {
